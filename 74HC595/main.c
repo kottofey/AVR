@@ -67,19 +67,19 @@ int main(){
 	TIMSK0 |= 1 << TOIE0; 	// разрешение прерывания по переполнению
 	GTCCR |= 1 << PSR10;	// ресет предделителя таймера
 
-//	sei();					// глобальное разрешение прерываний
+	sei();					// глобальное разрешение прерываний
 
 	char str[3] = "000";
-	int i = 123;
+	int i=0;
 
-	int_to_str(i, str);
-	HC595_WriteAscii(str, 3);
+//	int_to_str(i, str);
+//	HC595_WriteAscii(str, 3);
 
 //	HC595_WriteAscii("123", HC595_QTY);
 	while (1) {
 		if (count == 4800){
-//			int_to_str(i, str);
-//			HC595_WriteAscii(str, 3);
+			int_to_str(i, str);
+			HC595_WriteAscii(str, 3);
 			count = 0;
 			edgecount = 0;
 		}
@@ -123,7 +123,7 @@ int HC595_WriteAscii(char *i, uint8_t qty){
 
 void int_to_str(int i, char *str){
 	*str = (i / 100) + 0x30; str++;
-	*str = ( i - (i / 100) - ((i/10)*10) ) + 0x30; str++;
+	*str = ( ( i - ( (i / 100)*100 + (i - (i/10)*10) ) ) / 10) + 0x30; str++;
 	*str = (i - (i/10)*10) + 0x30;
 
 }
