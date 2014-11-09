@@ -122,7 +122,8 @@ int HC595_WriteAscii(char *i, uint8_t qty){
 }
 
 void int_to_str(int i, char *str){
-	*str = (i % 100) + 0x30; str++;
-//	*str = ( (i - (i%100)*100 ) % 10) + 0x30; str++;
-	*str = ( i - ( (i % 10) * 10) ) + 0x30;
+	*str = (i / 100) + 0x30; str++;
+	*str = ( i - (i / 100) - ((i/10)*10) ) + 0x30; str++;
+	*str = (i - (i/10)*10) + 0x30;
+
 }
