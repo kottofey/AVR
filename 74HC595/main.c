@@ -36,13 +36,14 @@
 #define store() {STORE_PORT |= _BV(STORE_PIN); STORE_PORT &=~_BV(STORE_PIN);}
 
 const volatile char digits[10] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f};
-volatile unsigned int edgecount = 0, count = 0;
+volatile unsigned int edgecount = 0, count = 0; // Переменные для подсчета дребезжаний и таймера
 
-int HC595_WriteAscii(char *i, uint8_t qty);
-void int_to_str(int i, char * str);
+int HC595_WriteAscii(char *i, uint8_t qty);		//	*i - что писать, qty - количество подключенных регистров
+void int_to_str(int i, char * str);		// Преобразовывает i в *str
 
 ISR (INT0_vect) {
-	edgecount++;		// счетчик дребезга
+	TIMSK0 |= 1 << TOIE0;	// Запускаем таймер по нажатию кнопки
+	edgecount++;			// счетчик дребезга
 }
 
 ISR (TIM0_OVF_vect){	// будет тикать 1.2млн раз в секунду с prescaler 8 при частоте 9.6МГц
@@ -57,6 +58,7 @@ int main(){
 	DATA_DDR |= 1 << DATA_PIN; DATA_PORT = 0;
 	SHIFT_DDR |= 1 << SHIFT_PIN; SHIFT_PORT = 0;
 	STORE_DDR |= 1 << STORE_PIN; STORE_PORT = 0;
+	HC595_WriteAscii("@@@", 3);
 
 //	Инициализация прерываний
 	MCUCR = 0b00000010;		// Прерывание на INT0 по падающему фронту
@@ -64,24 +66,20 @@ int main(){
 
 //	Инициализация таймера
 	TCCR0B = 0b00000010;	// предделитель таймера 8
-	TIMSK0 |= 1 << TOIE0; 	// разрешение прерывания по переполнению
-	GTCCR |= 1 << PSR10;	// ресет предделителя таймера
+//	TIMSK0 |= 1 << TOIE0; 	// разрешение прерывания по переполнению, перенесено в обработчик прерывания INT0
+	GTCCR |= 1 << PSR10;	// ресет предделителя таймера. По идее нужная штука...
 
 	sei();					// глобальное разрешение прерываний
 
-	char str[3] = "000";
-	int i=0;
+	char str[3] = "000";	// Контейнер для количества дребезжаний в ASCII
 
-//	int_to_str(i, str);
-//	HC595_WriteAscii(str, 3);
-
-//	HC595_WriteAscii("123", HC595_QTY);
 	while (1) {
-		if (count == 4800){
-			int_to_str(i, str);
-			HC595_WriteAscii(str, 3);
-			count = 0;
-			edgecount = 0;
+		if (count == 4800){				//	Если прошла секунда с момента нажатия кнопки, то
+			TIMSK0 &= ~(1 << TOIE0);	//	Останавливаем счетчик
+			int_to_str(edgecount, str);	//	Переводим количество дребезжаний в строку
+			HC595_WriteAscii(str, 3);	//	Выводим на индикаторы
+			count = 0;					//	Обнуляем счетчик
+			edgecount = 0;				//	и количество дребезжаний
 		}
 	}
 
@@ -121,7 +119,7 @@ int HC595_WriteAscii(char *i, uint8_t qty){
 	return 0;
 }
 
-void int_to_str(int i, char *str){
+void int_to_str(int i, char *str){		// КОСТЫЫЫЛЬ.... Однако, работает. itoa?..
 	*str = (i / 100) + 0x30; str++;
 	*str = ( ( i - ( (i / 100)*100 + (i - (i/10)*10) ) ) / 10) + 0x30; str++;
 	*str = (i - (i/10)*10) + 0x30;
