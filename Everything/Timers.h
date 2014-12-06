@@ -28,8 +28,7 @@ extern uint8_t TimersState[MAX_TIMERS];	// Контейнер для состо�
 #define TIMER_DAY 3
 #define TIMER_TICK 4
 #define TIMER_KEYB 5
-#define TIMER_TEMP_CONVERT_PERIOD 6
-#define TIMER_TEMP_CONVERT_COMPLETED 7
+#define TIMER_TEMP_CONVERT 6
 
 // Состояния для таймеров
 #define TIMER_STOPPED 0

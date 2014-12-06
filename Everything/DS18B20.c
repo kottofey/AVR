@@ -15,7 +15,7 @@ char FSM_State; // Состояние автомата
 
 
 int DS_Init() {
-	asm("cli");
+//	asm("cli");
 	pin_write();
 	pin_low();
 	_delay_us(480);
@@ -27,20 +27,20 @@ int DS_Init() {
 	   if (i == 0) {	// датчик обнаружен, ножка прижата к нулю
 //			UART_TxChar('Y');
 		    _delay_us(480);
-		    asm("sei");
+//		    asm("sei");
 		    return 1;
 	   }
 	   else {	// датчик не обнаружен, ножка осталась подтянута к питанию
 
 //			UART_TxString("Temperature sensor missing!\n");
 		   _delay_us(480);
-		   asm("sei");
+//		   asm("sei");
 		   return 0;
 		}
 }
 
 void DS_WriteByte(unsigned int byte){
-	asm("cli");
+//	asm("cli");
 	int i;
 	for (i=0; i<8; i++){
 		if (byte & 0b00000001){
@@ -60,11 +60,11 @@ void DS_WriteByte(unsigned int byte){
 		}
 		byte >>= 1;
 	}
-	asm("sei");
+//	asm("sei");
 }
 
 char DS_ReadBit(){
-	asm("cli");
+//	asm("cli");
 	char bit;
 	pin_write();
 	pin_low();		// Прижимаем к нулю
@@ -75,7 +75,7 @@ char DS_ReadBit(){
 	pin_read(); // пин PD6 на чтение
 	bit = (PIND & 0b01000000) >> 6;	// Читаем бит. Сдвиг вправо на 6 бит чтобы получить чистую ноль или единицу
 	_delay_us(60);	// Ждем до конца таймслота
-	asm("sei");
+//	asm("sei");
 	return bit;
 }
 
@@ -188,25 +188,29 @@ void DS_InitFSM(){
 void DS_ProcessFSM(){
 	switch (FSM_State){
 		case 0:
+			UART_TxString("DS0\n");
 			FSM_State = 1;
-			StartTimer(TIMER_TEMP_CONVERT_PERIOD);
+			StartTimer(TIMER_TEMP_CONVERT);
 			break;
 
 		case 1:
-			if (GetTimer(TIMER_TEMP_CONVERT_PERIOD) >= 10*sec ){
+			UART_TxString("DS1\n");
+			if (GetTimer(TIMER_TEMP_CONVERT) >= DS_CONVERT_PERIOD ){
 				DS_MeasureTemp();
-				StopTimer(TIMER_TEMP_CONVERT_PERIOD);
-				StartTimer(TIMER_TEMP_CONVERT_COMPLETED);
+				ResetTimer(TIMER_TEMP_CONVERT);
 				FSM_State = 2;
 			}
 			break;
 
 		case 2:
-			if (GetTimer(TIMER_TEMP_CONVERT_COMPLETED) >= 1*sec){	// Через секунду гарантировано можно забирать значение при любой разрядности датчика
+			UART_TxString("DS2\n");
+			if (GetTimer(TIMER_TEMP_CONVERT) >= 1*sec){	// Через секунду гарантировано можно забирать значение при любой разрядности датчика
 				DS_GetAsciiTemp();
 				SendMessage(MSG_TEMP_CONVERT_COMPLETED);
-				StopTimer(TIMER_TEMP_CONVERT_COMPLETED);
+				StopTimer(TIMER_TEMP_CONVERT);
 				FSM_State = 0;
 			}
+			break;
+
 	}
 }

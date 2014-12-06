@@ -5,8 +5,9 @@
 #include "Messages.h"
 #include "Timers.h"
 #include "my_uart.h"
+#include "keyboard.h"
 
-uint8_t FSM_State; // Переменная состояния КА
+uint8_t FSM_Staate; // Переменная состояния КА
 char AsciiTemp[10];
 
 void LCD_init() {
@@ -21,7 +22,7 @@ void LCD_init() {
 
 //	setup
 	LCD_WriteCmd(0b00111010);	// Function Set (4[0]/8[1]bit, 1я страница)
-	LCD_WriteCmd(0b00001111);	// Disp On/Off Control (вкл[1]/выкл[0] экрана, режим курсора[11])
+	LCD_WriteCmd(0b00001110);	// Disp On/Off Control (вкл[1]/выкл[0] экрана, режим курсора[10])
 	LCD_WriteCmd(0b00000110);	// Entry Mode Set (курсор влево/вправо | разрешение сдвига экрана)
 //	LCD_WriteCmd(0b00000001);	// Clear Display
 
@@ -45,7 +46,7 @@ void LCD_WriteData(char b) {
 }
 
 void LCD_WriteByte(char b, char cd) {
-	asm("cli");
+//	asm("cli");
 	DDRC = 0b00000000; // PORTC-шина_данных на вход
 	DDRA |= (1 << 0) | (1 << 1) | (1 << 2); // пины 0, 1, 2 порта A на вывод
 
@@ -75,7 +76,7 @@ void LCD_WriteByte(char b, char cd) {
 	_delay_us(1);
 	PORTA &= ~(1 << 0);
 	_delay_us(45);	// Строб
-	asm("sei");
+//	asm("sei");
 }
 
 void LCD_WriteString(char *data) {
@@ -116,15 +117,26 @@ void LCD_ShowTemp(){
 }
 
 void LCD_InitFSM(){
-	uint8_t FSM_State = 0;
+	FSM_Staate = 0;
 }
 
 void LCD_ProcessFSM(){
-	switch(FSM_State){
-		case 0:
-			if (GetMessage(MSG_TEMP_CONVERT_COMPLETED)){
+	if (GetMessage(MSG_TEMP_CONVERT_COMPLETED)){
 				LCD_ShowTemp();
 			}
-			break;
+	if (GetMessage(MSG_KEYB_KEY_PRESSED)){
+		switch (Keyb_GetScancode()){
+			case KEY_1: LCD_WriteCmd(CLEAR_SCREEN); break;
+			case KEY_2: LCD_WriteCmd(CURSOR_MOVE_LEFT); break;
+			case KEY_3: LCD_WriteCmd(CURSOR_MOVE_RIGHT); break;
+			case KEY_4: LCD_WriteData('4'); break;
+			case KEY_1_2: LCD_WriteData('5'); break;
+			case KEY_1_3: LCD_WriteData('6'); break;
+			case KEY_1_4: LCD_WriteData('7'); break;
+			case KEY_2_3: LCD_WriteData('8'); break;
+			case KEY_2_4: LCD_WriteData('9'); break;
+			case KEY_3_4: LCD_WriteData('A'); break;
+			case KEY_1_2_3: LCD_WriteData('B'); break;
+		}
 	}
 }

@@ -20,6 +20,10 @@
 #ifndef LCD_H_
 #define LCD_H_
 
+#define CLEAR_SCREEN 0x01
+#define CURSOR_MOVE_LEFT  0b00010000
+#define CURSOR_MOVE_RIGHT 0b00010100
+
 void LCD_init();
 void LCD_WriteCmd(char b);
 void LCD_WriteData(char b);

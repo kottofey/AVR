@@ -46,11 +46,11 @@ ISR (TIMER2_OVF_vect){
 int main(void) {
 	UART_Init(MYUBRR);
 	LCD_init();
-	Keyb_Init();
 	InitTimers();
 	InitMessages();
 	DS_InitFSM();
 	LCD_InitFSM();
+	Keyb_InitFSM();
 
 	// Инициализация аппаратного таймера
 	TCCR2 = (1 << CS22) | (1 << CS21) | (0 << CS20);	// Prescaler 256, один тик длится 0.032мс при частоте камня 8МГц
@@ -70,8 +70,8 @@ int main(void) {
 	while (1) {
 		LCD_ProcessFSM();
 		DS_ProcessFSM();
+		Keyb_ProcessFSM();
 		ProcessMessages();
 	}
-
 	return 0;	// Мы никогда не достигнем этого места...
 }

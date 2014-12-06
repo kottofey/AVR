@@ -7,6 +7,7 @@ encoding/Messages.h=UTF-8
 encoding/Timers.c=UTF-8
 encoding/Timers.h=UTF-8
 encoding/keyboard.c=UTF-8
+encoding/keyboard.h=UTF-8
 encoding/main.c=UTF-8
 encoding/my_uart.c=UTF-8
 encoding/my_uart.h=UTF-8
