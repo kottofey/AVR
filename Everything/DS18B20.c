@@ -15,7 +15,7 @@ char FSM_State; // Состояние автомата
 
 
 int DS_Init() {
-	asm("cli");
+//	asm("cli");
 	pin_write();
 	pin_low();
 	_delay_us(480);
@@ -27,20 +27,20 @@ int DS_Init() {
 	   if (i == 0) {	// датчик обнаружен, ножка прижата к нулю
 //			UART_TxChar('Y');
 		    _delay_us(480);
-		    asm("sei");
+//		    asm("sei");
 		    return 1;
 	   }
 	   else {	// датчик не обнаружен, ножка осталась подтянута к питанию
 
 //			UART_TxString("Temperature sensor missing!\n");
 		   _delay_us(480);
-		   asm("sei");
+//		   asm("sei");
 		   return 0;
 		}
 }
 
 void DS_WriteByte(unsigned int byte){
-	asm("cli");
+//	asm("cli");
 	int i;
 	for (i=0; i<8; i++){
 		if (byte & 0b00000001){
@@ -60,11 +60,11 @@ void DS_WriteByte(unsigned int byte){
 		}
 		byte >>= 1;
 	}
-	asm("sei");
+//	asm("sei");
 }
 
 char DS_ReadBit(){
-	asm("cli");
+//	asm("cli");
 	char bit;
 	pin_write();
 	pin_low();		// Прижимаем к нулю
@@ -75,7 +75,7 @@ char DS_ReadBit(){
 	pin_read(); // пин PD6 на чтение
 	bit = (PIND & 0b01000000) >> 6;	// Читаем бит. Сдвиг вправо на 6 бит чтобы получить чистую ноль или единицу
 	_delay_us(60);	// Ждем до конца таймслота
-	asm("sei");
+//	asm("sei");
 	return bit;
 }
 
@@ -112,8 +112,6 @@ uint16_t DS_GetTemp(){
 
 // Конвертируем в int XXXY, где XXX - целая часть, а Y - десятичная часть
 	int16_t IntTemp; // Переменная для конвертации температуры в целочисленное значение
-//	IntTemp = 0xD31;	// Тест на отрицательную температуру. Значению 0xD31 соответствует -44.9375º.
-						// Раскомментируем эту строку и комментируем следующую. для проверки.
 	IntTemp = (DSTemp & 4095); // обрезаем биты знака (с 15 по 12). В итоге получаем 12 бит
 
 // Дальше идет магия... Здесь используется способ преобразования без плавающей запятой.
@@ -127,10 +125,11 @@ uint16_t DS_GetTemp(){
 // Байт инвертируется, добавляется единица, а старший-знаковый бит откидывается. В итоге будет модуль отрицательного числа.
 
 		if (IntTemp & 2048){	/*Если температура отрицательная*/
-			AsciiTemp[0] = '-';	// Сразу вставляем знак минуса в начало строки температуры.
+			SendMessage(MSG_TEMP_NEGATIVE);	// Выставляем флаг, что температура орицательна. Чтобы потом вывести знак минуса на экран.
 			IntTemp ^= 0xFFF;	// Ксорим 12 бит (инвертируем то бишь)
 			IntTemp++;			// Добавляем единичку. Получили модуль значения температуры.
 			IntTemp = (IntTemp >> 1) + (IntTemp >> 3);	// Делим на 16
+
 			return IntTemp;
 		}
 		else {
@@ -159,16 +158,16 @@ void DS_GetAsciiTemp(){
 //	то вместо первого символа нуля будет знак минуса. Трехзначные отрицательные температуры нам
 //	мерять не зачем, так что знак минуса не помешает. Вот как бы только раздобыть отрицательную
 //	температуру для проверки... Морозилка?.. Надо припаять датчик к проводу в термоусадки чтоб
-//	не засовывать всю макетку в морозилку. Но! Можно поступить умнее и подсунуть тестовое значение
-//	в качестве данных от датчика.
+//	не засовывать всю макетку в морозилку.
 //
 //	*(AsciiTemp + (i+3) ) = '\n';
 //	*(AsciiTemp + (i+2) ) = 'C';
 //	*(AsciiTemp + (i+1) ) = 0xB0;
 
 	for(int i = buf_size; i >= 0; i--){
-		if (AsciiTemp[i] == '-'){	// Это проверка на отрицательную температуру
-			i--;					// Если вставлен минус, то просто переходим к следующей цифре
+		if (GetMessage(MSG_TEMP_NEGATIVE)){
+			*(AsciiTemp + i) = '-';
+			i--;
 		}
 		if (i==buf_size-1){ // Вставляем десятичную точку перед десятой долей градуса
 			*(AsciiTemp+i)='.';
@@ -189,25 +188,29 @@ void DS_InitFSM(){
 void DS_ProcessFSM(){
 	switch (FSM_State){
 		case 0:
+			UART_TxString("DS0\n");
 			FSM_State = 1;
-			StartTimer(TIMER_TEMP_CONVERT_PERIOD);
+			StartTimer(TIMER_TEMP_CONVERT);
 			break;
 
 		case 1:
-			if (GetTimer(TIMER_TEMP_CONVERT_PERIOD) >= 1*sec ){
+			UART_TxString("DS1\n");
+			if (GetTimer(TIMER_TEMP_CONVERT) >= DS_CONVERT_PERIOD ){
 				DS_MeasureTemp();
-				StopTimer(TIMER_TEMP_CONVERT_PERIOD);
-				StartTimer(TIMER_TEMP_CONVERT_COMPLETED);
+				ResetTimer(TIMER_TEMP_CONVERT);
 				FSM_State = 2;
 			}
 			break;
 
 		case 2:
-			if (GetTimer(TIMER_TEMP_CONVERT_COMPLETED) >= 1*sec){	// Через секунду гарантировано можно забирать значение при любой разрядности датчика
+			UART_TxString("DS2\n");
+			if (GetTimer(TIMER_TEMP_CONVERT) >= 1*sec){	// Через секунду гарантировано можно забирать значение при любой разрядности датчика
 				DS_GetAsciiTemp();
 				SendMessage(MSG_TEMP_CONVERT_COMPLETED);
-				StopTimer(TIMER_TEMP_CONVERT_COMPLETED);
+				StopTimer(TIMER_TEMP_CONVERT);
 				FSM_State = 0;
 			}
+			break;
+
 	}
 }
