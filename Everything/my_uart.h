@@ -1,7 +1,8 @@
 /*
  * 	- UART_Init				UART инициализация;
  *  - UART_TxChar			UART передача символа;
- *  - UART_TxString			UART передача строки (строку передавать аргументом в функцию);
+ *  - UART_TxString			UART передача строки из оперативки;
+ *  - UART_TxStringFlash	UART передача строки из флеша;
  */
 
 
@@ -14,6 +15,7 @@
 
 void UART_Init(unsigned int ubrr);
 void UART_TxChar(char data);
-void UART_TxString(char * data);
+void UART_TxString(char *data);
+void UART_TxStringFlash(const char *data);
 
 #endif

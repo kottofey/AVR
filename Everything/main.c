@@ -28,6 +28,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include <avr/pgmspace.h>
 
 #include "Timers.h"		// Библиотека таймеров Конечного Автомата (КА)
 #include "Messages.h"	// Библиотека сообщений КА
@@ -36,12 +37,11 @@
 #include "my_uart.h"
 #include "DS18B20.h"
 #include "LCD.h"
+#include "menu.h"
 
 ISR (TIMER2_OVF_vect){
 	ProcessTimers();		// добавляем единичку ко всем виртуальным таймерам по переполнению и по условию (для секунд-минут итд)
 }
-
-
 
 int main(void) {
 	UART_Init(MYUBRR);
@@ -51,6 +51,8 @@ int main(void) {
 	DS_InitFSM();
 	LCD_InitFSM();
 	Keyb_InitFSM();
+	SET_MENU_WRITE_FUNC(LCD_WriteStringFlash);
+//	SET_MENU_WRITE_FUNC(UART_TxString);
 
 	// Инициализация аппаратного таймера
 	TCCR2 = (1 << CS22) | (1 << CS21) | (0 << CS20);	// Prescaler 256, один тик длится 0.032мс при частоте камня 8МГц
@@ -59,8 +61,7 @@ int main(void) {
 	TIMSK = 1 << TOIE2;		// Запуск прерывания по переполнению таймера
 
 	LCD_WriteCmd(0x01);
-	LCD_WriteString("Temp=");
-	LCD_GotoXY(0,10);
+	LCD_WriteStringFlash(PSTR("Temp=     "));
 	LCD_WriteData(0xB0);
 	LCD_WriteData('C');
 
@@ -73,5 +74,6 @@ int main(void) {
 		Keyb_ProcessFSM();
 		ProcessMessages();
 	}
+
 	return 0;	// Мы никогда не достигнем этого места...
 }

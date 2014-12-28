@@ -6,8 +6,10 @@
 #include "Timers.h"
 #include "my_uart.h"
 #include "keyboard.h"
+#include "menu.h"
+#include <avr/pgmspace.h>
 
-uint8_t FSM_Staate; // Переменная состояния КА
+volatile uint8_t FSM_Staate; // Переменная состояния КА
 char AsciiTemp[10];
 
 void LCD_init() {
@@ -28,7 +30,8 @@ void LCD_init() {
 
 //	debug
 	LCD_WriteCmd(0b00000010);	// Return Home (курсор в начало)
-	LCD_WriteString("LCD Init OK");
+	LCD_WriteStringFlash(PSTR("LCD Init OK"));	// инлайн строчка берется из флеша
+	UART_TxChar(0x99);
 	_delay_ms(200);
 	LCD_WriteCmd(0x01);
 }
@@ -80,12 +83,17 @@ void LCD_WriteByte(char b, char cd) {
 }
 
 void LCD_WriteString(char *data) {
-	int i = 0;
-	while (data[i] != 0) {
-		LCD_WriteData(data[i]);
-		i++;
+	while (*data) {
+		LCD_WriteData(*data);
+		data++;
 	}
-	i = 0;
+}
+
+void LCD_WriteStringFlash(const char *data) {
+	while (pgm_read_byte(data)) {
+		LCD_WriteData(pgm_read_byte(data));
+		data++;
+	}
 }
 
 void LCD_GotoXY(char stroka, char simvol) {
@@ -103,7 +111,7 @@ void LCD_GotoXY(char stroka, char simvol) {
 void LCD_MakeSymbol(char addr, char * a0) {
 	//Значок молнии
 	if (!addr)
-		LCD_WriteCmd(addr + 0x40);
+	LCD_WriteCmd(addr + 0x40);
 	LCD_WriteCmd(addr * 0x08 + 0x40);	// Выбираем адрес символа в CGRAM
 
 	for (int i = 0; i < 8; i++) {
@@ -121,22 +129,49 @@ void LCD_InitFSM(){
 }
 
 void LCD_ProcessFSM(){
-	if (GetMessage(MSG_TEMP_CONVERT_COMPLETED)){
+	switch (FSM_Staate){
+		case 0:
+			if (GetMessage(MSG_TEMP_CONVERT_COMPLETED)){
 				LCD_ShowTemp();
 			}
-	if (GetMessage(MSG_KEYB_KEY_PRESSED)){
-		switch (Keyb_GetScancode()){
-			case KEY_1: LCD_WriteCmd(CLEAR_SCREEN); break;
-			case KEY_2: LCD_WriteCmd(CURSOR_MOVE_LEFT); break;
-			case KEY_3: LCD_WriteCmd(CURSOR_MOVE_RIGHT); break;
-			case KEY_4: LCD_WriteData('4'); break;
-			case KEY_1_2: LCD_WriteData('5'); break;
-			case KEY_1_3: LCD_WriteData('6'); break;
-			case KEY_1_4: LCD_WriteData('7'); break;
-			case KEY_2_3: LCD_WriteData('8'); break;
-			case KEY_2_4: LCD_WriteData('9'); break;
-			case KEY_3_4: LCD_WriteData('A'); break;
-			case KEY_1_2_3: LCD_WriteData('B'); break;
-		}
+			if (GetMessage(MSG_KEYB_KEY_PRESSED)){
+				switch (Keyb_GetScancode()){
+					case KEY_1: LCD_WriteCmd(CLEAR_SCREEN); break;
+					case KEY_2: LCD_WriteCmd(CURSOR_MOVE_LEFT); break;
+					case KEY_3: LCD_WriteCmd(CURSOR_MOVE_RIGHT); break;
+					case KEY_4: FSM_Staate=10; break;	// Вход в меню
+					case KEY_1_2: LCD_WriteData('5'); break;
+					case KEY_1_3: LCD_WriteData('6'); break;
+					case KEY_1_4: FSM_Staate = 20; break;	// DEBUG
+					case KEY_2_3: LCD_WriteData('8'); break;
+					case KEY_2_4: LCD_WriteData('9'); break;
+					case KEY_3_4: LCD_WriteData('A'); break;
+					case KEY_1_2_3: LCD_WriteData('B'); break;
+				}
+			}
+			break;
+
+		case 10:	// Входим в меню
+			LCD_WriteCmd(CLEAR_SCREEN);
+			LCD_WriteStringFlash(PSTR("MENU:"));
+			LCD_GotoXY(1,0);
+			SET_MENU(x1);
+			FSM_Staate = 11;
+			break;
+
+		case 11:
+			if (GetMessage(MSG_KEYB_KEY_PRESSED)){
+				LCD_WriteCmd(CLEAR_SCREEN);
+				LCD_WriteStringFlash(PSTR("MENU:"));
+				LCD_GotoXY(1,0);
+				switch (Keyb_GetScancode()){
+					case KEY_1: SET_MENU(PREVIOUS); break;
+					case KEY_2: SET_MENU(PARENT); break;
+					case KEY_3: SET_MENU(SIBLING); break;
+					case KEY_4: SET_MENU(NEXT); break;
+					case KEY_3_4: GO_MENU_FUNC(SELECTFUNC); break;
+				}
+			}
+			break;
 	}
 }

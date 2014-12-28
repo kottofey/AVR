@@ -29,6 +29,7 @@ void LCD_WriteCmd(char b);
 void LCD_WriteData(char b);
 void LCD_WriteByte(char b, char cd);
 void LCD_WriteString(char *data);
+void LCD_WriteStringFlash(const char *data);
 void LCD_GotoXY(char stroka, char simvol);
 void LCD_MakeSymbol(char addr, char * a0); // Символ задается массивом. Программа компактнее, но отжирает больше памяти flash
 void LCD_ShowTemp();

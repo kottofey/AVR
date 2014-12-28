@@ -22,11 +22,11 @@
 #define DS_PIN 6
 #define DS_DDR DDRD
 
-#define DS_CONVERT_PERIOD 5*sec // 1250 * 4мс = 5с
+#define DS_CONVERT_PERIOD 1*sec // 1250 * 4мс = 5с
 
 extern char AsciiTemp[10];			// Глобальная переменная для температуры в ASCII формате
 
-int DS_Init();
+int DS_Reset();
 void DS_WriteByte(unsigned int byte);
 char DS_ReadBit();
 char DS_ReadByte();

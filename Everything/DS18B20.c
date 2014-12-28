@@ -13,8 +13,7 @@
 char AsciiTemp[10]; // Строка с температурой в ASCII формате
 char FSM_State; // Состояние автомата
 
-
-int DS_Init() {
+int DS_Reset() {
 //	asm("cli");
 	pin_write();
 	pin_low();
@@ -90,7 +89,7 @@ char DS_ReadByte(){
 }
 
 void DS_MeasureTemp(){
-	DS_Init();
+	DS_Reset();
 	DS_WriteByte(SKIP_ROM);
 	DS_WriteByte(CONVERT_T);	// Запуск измерения температуры
 }
@@ -100,13 +99,13 @@ uint16_t DS_GetTemp(){
 	char ms = 0;	// Most Significant byte из датчика
 	uint16_t DSTemp = 0;	// Собственно температура в int
 
-	DS_Init(); // Посылаем Reset и ждем сигнал Presence от датчика
+	DS_Reset(); // Посылаем Reset и ждем сигнал Presence от датчика
 	DS_WriteByte(SKIP_ROM);	// Один датчик
 	DS_WriteByte(READ_SCRATCHPAD); //передать байты из памяти мастеру (у 18b20 в первых двух содержится температура)
 
 	ls = DS_ReadByte(); //читаем байт LS
 	ms = DS_ReadByte(); //читаем байт MS
-	DS_Init();	// Reset ибо кроме первых двух байт температуры нам пока ничего не надо
+	DS_Reset();	// Reset ибо кроме первых двух байт температуры нам пока ничего не надо
 
 	DSTemp = ((ms << 8) | ls); //укладываем биты в последовательности MS потом LS
 
@@ -188,13 +187,13 @@ void DS_InitFSM(){
 void DS_ProcessFSM(){
 	switch (FSM_State){
 		case 0:
-			UART_TxString("DS0\n");
+//			UART_TxString("DS0\n");
 			FSM_State = 1;
 			StartTimer(TIMER_TEMP_CONVERT);
 			break;
 
 		case 1:
-			UART_TxString("DS1\n");
+//			UART_TxString("DS1\n");
 			if (GetTimer(TIMER_TEMP_CONVERT) >= DS_CONVERT_PERIOD ){
 				DS_MeasureTemp();
 				ResetTimer(TIMER_TEMP_CONVERT);
@@ -203,7 +202,7 @@ void DS_ProcessFSM(){
 			break;
 
 		case 2:
-			UART_TxString("DS2\n");
+//			UART_TxString("DS2\n");
 			if (GetTimer(TIMER_TEMP_CONVERT) >= 1*sec){	// Через секунду гарантировано можно забирать значение при любой разрядности датчика
 				DS_GetAsciiTemp();
 				SendMessage(MSG_TEMP_CONVERT_COMPLETED);
