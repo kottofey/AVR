@@ -41,7 +41,7 @@ uint8_t Keyb_Scan(){
 }
 
 uint8_t Keyb_GetScancode(){	// Возвращает код нажатой клавиши и 0xFF если ничего не нажато
-	switch (scancode){
+	switch (scancode){		// Список комбинаций вычислен брутфорсом :)
 	case 0xB7: return KEY_0; break;
 	case 0xB5: return KEY_1; break;
 	case 0xB6: return KEY_2; break;
@@ -78,7 +78,7 @@ void Keyb_ProcessFSM(){
 		case 2:
 //			UART_TxString("KB2\n");
 			Keyb_Scan();
-			if (scancode == _scancode){ // Если нажатие есть, то идем дальше
+			if (scancode == _scancode){ // Если нажатие всё еще есть, то идем дальше
 				SendMessage(MSG_KEYB_KEY_PRESSED);
 				ResetTimer(TIMER_KEYB);
 				FSM_Statee = 3;

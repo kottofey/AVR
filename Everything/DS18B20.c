@@ -11,7 +11,9 @@
 #define pin_write() {DS_DDR |= (1 << DS_PIN);}	// Пин на запись
 
 char AsciiTemp[10]; // Строка с температурой в ASCII формате
-char FSM_State; // Состояние автомата
+char FSM_State, _FSM_State; // Состояние автомата
+uint16_t ds_refresh_period = 0*sec;	// Периодичность замеров температуры
+uint8_t ds_convert_period = 188; 	// 9bit = 24, 10bit = 47, 11bit = 94, 12bit = 188
 
 int DS_Reset() {
 //	asm("cli");
@@ -185,6 +187,14 @@ void DS_InitFSM(){
 }
 
 void DS_ProcessFSM(){
+	if (GetBroadcastMessage(MSG_MENU_STARTED)){
+			_FSM_State = FSM_State;	// Сохраняем состояние автомата во временную переменную
+			FSM_State = 0xFF;	// Вход в меню, работа КА приостанавливается
+		}
+		else if (GetBroadcastMessage(MSG_MENU_EXIT)){
+			FSM_State = _FSM_State;	// Выход из меню. Возвращаемся к месту где остановились при входе в меню
+		}
+
 	switch (FSM_State){
 		case 0:
 //			UART_TxString("DS0\n");
@@ -194,7 +204,7 @@ void DS_ProcessFSM(){
 
 		case 1:
 //			UART_TxString("DS1\n");
-			if (GetTimer(TIMER_TEMP_CONVERT) >= DS_CONVERT_PERIOD ){
+			if (GetTimer(TIMER_TEMP_CONVERT) >= ds_refresh_period ){
 				DS_MeasureTemp();
 				ResetTimer(TIMER_TEMP_CONVERT);
 				FSM_State = 2;
@@ -203,7 +213,7 @@ void DS_ProcessFSM(){
 
 		case 2:
 //			UART_TxString("DS2\n");
-			if (GetTimer(TIMER_TEMP_CONVERT) >= 1*sec){	// Через секунду гарантировано можно забирать значение при любой разрядности датчика
+			if (GetTimer(TIMER_TEMP_CONVERT) >= ds_convert_period ){	// Через секунду гарантировано можно забирать значение при любой разрядности датчика
 				DS_GetAsciiTemp();
 				SendMessage(MSG_TEMP_CONVERT_COMPLETED);
 				StopTimer(TIMER_TEMP_CONVERT);

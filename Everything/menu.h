@@ -68,7 +68,13 @@ void MenuChange(Menu_Item* NewMenu);
 void MenuFunc(FuncPtr* Function);
 void ds_1sec();
 void ds_5sec();
+void ds_9bit();
+void ds_10bit();
+void ds_11bit();
+void ds_12bit();
 void menu_exit();
+void settings_to_uart();
+
 
 EXTERN_MENU(x1);
 EXTERN_MENU(x2);

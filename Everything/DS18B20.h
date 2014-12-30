@@ -14,16 +14,17 @@
 #ifndef DS18B20_H_
 #define DS18B20_H_
 
-#define SKIP_ROM 0xCC // Пропустить индентификацию
+#define SKIP_ROM 0xCC // Пропустить индентификацию, если 1-wire устройство одно
 #define CONVERT_T 0x44 // Измерить температуру
-#define READ_SCRATCHPAD 0xBE // Прочитать измеренное
+#define READ_SCRATCHPAD 0xBE // Прочитать из памяти
+#define WRITE_SCRATCHPAD 0x4E // Записать в память
 
 #define DS_PORT PORTD
 #define DS_PIN 6
 #define DS_DDR DDRD
 
-#define DS_CONVERT_PERIOD 1*sec // 1250 * 4мс = 5с
-
+extern uint16_t ds_refresh_period;	// Периодичность замеров температуры
+extern uint8_t ds_convert_period;	// Длительность конвертации (зависит от битности значения температуры)
 extern char AsciiTemp[10];			// Глобальная переменная для температуры в ASCII формате
 
 int DS_Reset();

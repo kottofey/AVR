@@ -24,8 +24,12 @@
 
 #define MSG_KEYB_KEY_PRESSED 5
 
+#define MSG_MENU_STARTED 6
+#define MSG_MENU_EXIT 7
+
 void InitMessages();
 void SendMessage(uint8_t Msg);
+void SendBroadcastMessage(uint8_t Msg);
 uint8_t GetMessage(uint8_t Msg);
 uint8_t GetBroadcastMessage(uint8_t);
 void ProcessMessages();

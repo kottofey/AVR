@@ -60,12 +60,6 @@ int main(void) {
 							// За 125 тиков до переполнения пройдет 4мс. Одна секунда длится 250 переполнений.
 	TIMSK = 1 << TOIE2;		// Запуск прерывания по переполнению таймера
 
-	LCD_WriteCmd(0x01);
-	LCD_WriteStringFlash(PSTR("Temp=     "));
-	LCD_WriteData(0xB0);
-	LCD_WriteData('C');
-
-
 	asm("sei");	// Разрешаем прерывания
 
 	while (1) {
