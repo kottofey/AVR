@@ -14,14 +14,18 @@
 #ifndef DS18B20_H_
 #define DS18B20_H_
 
-#define SKIP_ROM 0xCC // Пропустить индентификацию, если 1-wire устройство одно
-#define CONVERT_T 0x44 // Измерить температуру
-#define READ_SCRATCHPAD 0xBE // Прочитать из памяти
-#define WRITE_SCRATCHPAD 0x4E // Записать в память
+#define SKIP_ROM 			0xCC	// Пропустить индентификацию, если 1-wire устройство одно
+#define CONVERT_T			0x44	// Измерить температуру
+#define READ_SCRATCHPAD		0xBE	// Прочитать из памяти
+#define WRITE_SCRATCHPAD	0x4E	// Записать в память
+#define ALARM_SEARCH		0xEC	// Поиск аларма
+#define READ_ROM			0x33	// Чтение 64х-битного кода датчика (ТОЛЬКО КОГДА УСТРОЙСТВО НА ШИНЕ ОДНО!)
+#define SEARCH_ROM			0xF0	// Поиск всех 1-wire устройств на шине. Они будут отвечать 64-битным кодом (0x24+"s/n"+CRC)
 
 #define DS_PORT PORTD
-#define DS_PIN 6
+#define DS_PIN PIND
 #define DS_DDR DDRD
+#define DS_PIN_NUMBER 2
 
 extern uint16_t ds_refresh_period;	// Периодичность замеров температуры
 extern uint8_t ds_convert_period;	// Длительность конвертации (зависит от битности значения температуры)
@@ -29,11 +33,14 @@ extern char AsciiTemp[10];			// Глобальная переменная для
 
 int DS_Reset();
 void DS_WriteByte(unsigned int byte);
+void DS_WriteBit(unsigned int bit);
 char DS_ReadBit();
 char DS_ReadByte();
 void DS_MeasureTemp();
 uint16_t DS_GetTemp();
 void DS_GetAsciiTemp();
+void DS_ReadROM();
+uint8_t DS_CheckCRC(char *crc_to_check);
 
 void DS_InitFSM();
 void DS_ProcessFSM();

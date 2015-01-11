@@ -13,8 +13,8 @@ uint8_t FSM_Staate; // Переменная состояния КА
 char AsciiTemp[10];
 
 void LCD_init() {
-	DDRC = 0xff; // PORTC-шина данных на вывод
-	DDRA |= (1 << 0) | (1 << 1) | (1 << 2); // пины 0, 1, 2 порта A на вывод
+	LCD_DATA_DDR = 0xff; // PORTC-шина данных на вывод
+	LCD_SIGNAL_DDR |= (1 << LCD_A0_PIN) | (1 << LCD_E_PIN) | (1 << LCD_RW_PIN); // пины 0, 1, 2 порта A на вывод
 
 	_delay_ms(20); 			// 	>20ms
 //	init
@@ -26,7 +26,7 @@ void LCD_init() {
 	LCD_WriteCmd(0b00111010);	// Function Set (4[0]/8[1]bit, 1я страница)
 	LCD_WriteCmd(0b00001110);	// Disp On/Off Control (вкл[1]/выкл[0] экрана, режим курсора[10])
 	LCD_WriteCmd(0b00000110);	// Entry Mode Set (курсор влево/вправо | разрешение сдвига экрана)
-//	LCD_WriteCmd(0b00000001);	// Clear Display
+	LCD_WriteCmd(0b00000001);	// Clear Display
 
 //	debug
 	LCD_WriteCmd(0b00000010);	// Return Home (курсор в начало)
@@ -44,33 +44,33 @@ void LCD_WriteData(char b) {
 }
 
 void LCD_WriteByte(char b, char cd) {
-	DDRC = 0b00000000; // PORTC-шина_данных на вход
-	DDRA |= (1 << 0) | (1 << 1) | (1 << 2); // пины 0, 1, 2 порта A на вывод
+	LCD_DATA_DDR = 0b00000000; // PORTC-шина_данных на вход
+	LCD_SIGNAL_DDR |= (1 << LCD_A0_PIN) | (1 << LCD_E_PIN) | (1 << LCD_RW_PIN); // пины 0, 1, 2 порта A на вывод
 
 // Чтение флага занятости
-	PORTA &= ~(1 << PINA1); //	A0 = 0
-	PORTA |= (1 << PINA2); // 	RW = 1
+	LCD_SIGNAL_PORT &= ~(1 << LCD_A0_PIN); //	A0 = 0
+	LCD_SIGNAL_PORT |= (1 << LCD_RW_PIN); // 	RW = 1
 
 	_delay_us(1); 			// 	>40ns
-	PORTA |= (1 << PINA0); 	//	E = 1
+	LCD_SIGNAL_PORT |= (1 << LCD_E_PIN); 	//	E = 1
 	_delay_us(1);			//	>230ns
-	while (PINC >= 0x80);	//	Ждать сброса флага занятости на пине PINC7
+	while (LCD_DATA_PIN >= 0x80);	//	Ждать сброса флага занятости на пине 7 LCD
 
-	PORTA &= ~(1 << PINA0);	//	E = 0
+	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);	//	E = 0
 	DDRC = 0xFF;	// шина данных опять на вывод
-	PORTA &= ~(1 << PINA2); //	RW = 0
+	LCD_SIGNAL_PORT &= ~(1 << LCD_RW_PIN); //	RW = 0
 
 	if (cd == 1) {
-		PORTA |= (1 << PINA1);
+		LCD_SIGNAL_PORT |= (1 << LCD_A0_PIN);
 	}	// A0 = cd (1)
 	else {
-		PORTA &= ~(1 << PINA1);
+		LCD_SIGNAL_PORT &= ~(1 << LCD_A0_PIN);
 	}	// A0 = cd (0)
 
-	PORTC = b;			 //Выдача байта на шину данных
-	PORTA |= (1 << 0);
+	LCD_DATA_PORT = b;			 //Выдача байта на шину данных
+	LCD_SIGNAL_PORT |= (1 << LCD_E_PIN);
 	_delay_us(1);
-	PORTA &= ~(1 << 0);
+	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);
 	_delay_us(45);	// Строб
 }
 
