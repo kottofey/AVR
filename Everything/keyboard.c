@@ -41,7 +41,7 @@ uint8_t Keyb_Scan(){
 }
 
 uint8_t Keyb_GetScancode(){	// Возвращает код нажатой клавиши и 0xFF если ничего не нажато
-	switch (scancode){
+	switch (scancode){		// Список комбинаций вычислен брутфорсом :)
 	case 0xB7: return KEY_0; break;
 	case 0xB5: return KEY_1; break;
 	case 0xB6: return KEY_2; break;
@@ -61,7 +61,7 @@ uint8_t Keyb_GetScancode(){	// Возвращает код нажатой кла
 void Keyb_ProcessFSM(){
 	switch (FSM_Statee){
 		case 0:
-			UART_TxString("KB0\n");
+//			UART_TxString("KB0\n");
 			Keyb_Scan();
 			if(scancode != 0xB7){	// Вроде как есть нажатие! Обнуляем таймер антидребезга!
 				_scancode = scancode;
@@ -70,15 +70,15 @@ void Keyb_ProcessFSM(){
 			}
 			break;
 		case 1:
-			UART_TxString("KB1\n");
+//			UART_TxString("KB1\n");
 			if (GetTimer(TIMER_KEYB) >= DEBOUNCE){ // задержка на дребезг
 				FSM_Statee = 2;
 			}
 			break;
 		case 2:
-			UART_TxString("KB2\n");
+//			UART_TxString("KB2\n");
 			Keyb_Scan();
-			if (scancode == _scancode){ // Если нажатие есть, то идем дальше
+			if (scancode == _scancode){ // Если нажатие всё еще есть, то идем дальше
 				SendMessage(MSG_KEYB_KEY_PRESSED);
 				ResetTimer(TIMER_KEYB);
 				FSM_Statee = 3;
@@ -86,7 +86,7 @@ void Keyb_ProcessFSM(){
 			else FSM_Statee = 0; // Если нажатия нет, переходим к началу
 			break;
 		case 3:
-			UART_TxString("KB3\n");
+//			UART_TxString("KB3\n");
 			Keyb_Scan();
 			if (scancode == _scancode){
 				if (GetTimer(TIMER_KEYB) >= FIRST_REPEAT_DELAY){
@@ -98,7 +98,7 @@ void Keyb_ProcessFSM(){
 			else FSM_Statee = 0;
 			break;
 		case 4:
-			UART_TxString("KB4\n");
+//			UART_TxString("KB4\n");
 			Keyb_Scan();
 			if (scancode == _scancode){
 				if (GetTimer(TIMER_KEYB) >= REPEAT_DELAY){

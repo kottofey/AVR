@@ -20,6 +20,19 @@
 #ifndef LCD_H_
 #define LCD_H_
 
+///// Настройки подключения LCD /////////////
+#define LCD_DATA_DDR DDRC
+#define LCD_DATA_PORT PORTC
+#define LCD_DATA_PIN PINC
+
+#define LCD_SIGNAL_DDR DDRA
+#define LCD_SIGNAL_PIN PINA
+#define LCD_SIGNAL_PORT PORTA
+#define LCD_E_PIN PINA0
+#define LCD_A0_PIN PINA1
+#define LCD_RW_PIN PINA2
+////////////////////////////////
+
 #define CLEAR_SCREEN 0x01
 #define CURSOR_MOVE_LEFT  0b00010000
 #define CURSOR_MOVE_RIGHT 0b00010100
@@ -29,6 +42,7 @@ void LCD_WriteCmd(char b);
 void LCD_WriteData(char b);
 void LCD_WriteByte(char b, char cd);
 void LCD_WriteString(char *data);
+void LCD_WriteStringFlash(const char *data);
 void LCD_GotoXY(char stroka, char simvol);
 void LCD_MakeSymbol(char addr, char * a0); // Символ задается массивом. Программа компактнее, но отжирает больше памяти flash
 void LCD_ShowTemp();
