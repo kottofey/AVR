@@ -30,6 +30,7 @@
 extern uint16_t ds_refresh_period;	// Периодичность замеров температуры
 extern uint8_t ds_convert_period;	// Длительность конвертации (зависит от битности значения температуры)
 extern char AsciiTemp[10];			// Глобальная переменная для температуры в ASCII формате
+extern const char dscrc_table[];
 
 int DS_Reset();
 void DS_WriteByte(unsigned int byte);

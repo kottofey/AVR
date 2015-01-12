@@ -175,39 +175,6 @@ uint16_t DS_GetTemp(){
 		}
 }
 
-void DS_ReadROM(){
-	char ds_rom[8];
-	uint8_t crc_result = 0;
-
-	do {
-		DS_Reset();
-		DS_WriteByte(READ_ROM);
-		for (int i = 7; i >= 0; i--){
-			ds_rom[i] = DS_ReadByte();
-		}
-		crc_result = DS_CheckCRC(ds_rom);
-	} while (crc_result);
-
-	for (int i=0; i < 8; i++){
-		UART_TxChar(ds_rom[i]);
-	}
-
-	SendBroadcastMessage(MSG_MENU_EXIT);
-	LCD_GotoXY(1,15);
-	LCD_WriteData(0x17); _delay_ms(500);
-	return;
-}
-
-
-///// Функция проверяет CRC переданный в аргументе. Возвращается ноль если CRC совпадает
-uint8_t DS_CheckCRC(char *crc_to_check){
-	crc8 = 0;
-	for (int i = 7; i >= 0; i--){
-		crc8 = (char)pgm_read_byte( &(dscrc_table[ crc8 ^ crc_to_check[i] ]) );
-	}
-	return crc8;
-}
-
 void DS_GetAsciiTemp(){
 	uint16_t int_temp = DS_GetTemp();
 	int buf_size = 4;
@@ -247,6 +214,39 @@ void DS_GetAsciiTemp(){
 		*(AsciiTemp + i) = int_temp%10 | 0x30;
 		int_temp = int_temp/10;
 	}
+}
+
+void DS_ReadROM(){
+	char ds_rom[8];
+	uint8_t crc_result = 0;
+
+	do {
+		DS_Reset();
+		DS_WriteByte(READ_ROM);
+		for (int i = 7; i >= 0; i--){
+			ds_rom[i] = DS_ReadByte();
+		}
+		crc_result = DS_CheckCRC(ds_rom);
+	} while (crc_result);
+
+	for (int i=0; i < 8; i++){
+		UART_TxChar(ds_rom[i]);
+	}
+
+	SendBroadcastMessage(MSG_MENU_EXIT);
+	LCD_GotoXY(1,15);
+	LCD_WriteData(0x17); _delay_ms(500);
+	return;
+}
+
+
+///// Функция проверяет CRC переданный в аргументе. Возвращается ноль если CRC совпадает
+uint8_t DS_CheckCRC(char *crc_to_check){
+	crc8 = 0;
+	for (int i = 7; i >= 0; i--){
+		crc8 = (char)pgm_read_byte( &(dscrc_table[ crc8 ^ crc_to_check[i] ]) );
+	}
+	return crc8;
 }
 
 //////////////////// Конечный Автомат //////////////////////

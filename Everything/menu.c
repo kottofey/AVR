@@ -15,6 +15,7 @@
 #include "Timers.h"
 #include "LCD.h"
 #include <util/delay.h>
+#include "something.h"
 
 //#define MENU_USE_SRAM_BUFFER 128
 
@@ -23,13 +24,13 @@ Menu_Item*       CurrMenuItem;
 WriteFuncPtr*    WriteFunc;
 
 // Menus: 			Name		Next		Previous		Parent			Sibling			Select_Func		Enter_Func		Text
-MAKE_MENU(			x1,			x2,			x5,				x1,				x1y1,			NULL_FUNC,		NULL_FUNC,		"DS18B20 Settings");
+MAKE_MENU(			x1,			x2,			x5,				x1,				x1y1,			NULL_FUNC,		NULL_FUNC,		"DS Settings    >");
 /////////////////////////////
-	MAKE_MENU(		x1y1,		x1y2,		x1y2,			x1,				x1y1z1,			NULL_FUNC,		NULL_FUNC,		"Measure Period");
+	MAKE_MENU(		x1y1,		x1y2,		x1y2,			x1,				x1y1z1,			NULL_FUNC,		NULL_FUNC,		"Measure Period >");
 		MAKE_MENU(	x1y1z1,		x1y1z2,		x1y1z2,			x1y1,			x1y1z1,			ds_1sec,		NULL_FUNC,		"> 1 sec");
 		MAKE_MENU(	x1y1z2,		x1y1z1,		x1y1z1,			x1y1,			x1y1z2,			ds_5sec,		NULL_FUNC,		"> 5 sec");
 /////////////////////////////
-	MAKE_MENU(		x1y2,		x1y1,		x1y1,			x1,				x1y2z1,			NULL_FUNC,		NULL_FUNC,		"Convert bits");
+	MAKE_MENU(		x1y2,		x1y1,		x1y1,			x1,				x1y2z1,			NULL_FUNC,		NULL_FUNC,		"Convert bits   >");
 		MAKE_MENU(	x1y2z1,		x1y2z2,		x1y2z4,			x1y2,			x1y2z1,			ds_9bit,		NULL_FUNC,		"> 9 bit");
 		MAKE_MENU(	x1y2z2,		x1y2z3,		x1y2z1,			x1y2,			x1y2z2,			ds_10bit,		NULL_FUNC,		"> 10 bit");
 		MAKE_MENU(	x1y2z3,		x1y2z4,		x1y2z2,			x1y2,			x1y2z3,			ds_11bit,		NULL_FUNC,		"> 11 bit");
@@ -37,7 +38,7 @@ MAKE_MENU(			x1,			x2,			x5,				x1,				x1y1,			NULL_FUNC,		NULL_FUNC,		"DS18B20 
 /////////////////////////////
 /////////////////////////////
 MAKE_MENU(			x2,			x3,			x1,				x2,				x2,				settings_to_uart,NULL_FUNC,		"Settings to UART");
-MAKE_MENU(			x3,			x4,			x2,				x3,				x3,				NULL_FUNC,		NULL_FUNC,		"dummy");
+MAKE_MENU(			x3,			x4,			x2,				x3,				x3,				DS_SearchAllDevices,		NULL_FUNC,		"DS SEARCHROM");
 MAKE_MENU(			x4,			x5,			x3,				x4,				x4,				DS_ReadROM,		NULL_FUNC,		"READ_ROM to UART");
 MAKE_MENU(			x5,			x1,			x4,				x5,				x5,				menu_exit,		NULL_FUNC,		"Exit");
 
