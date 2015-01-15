@@ -32,8 +32,6 @@
  *  	Пока что вроде как работает, но выводит в УАРТ по несколько раз одно и то же...
  */
 
-#define F_CPU 8000000L
-
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
