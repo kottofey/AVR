@@ -1,6 +1,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include "my_uart.h"
+#include <avr/pgmspace.h>
 
 //	Прерывание USART прием байта завершен
 ISR (USART_RXC_vect) {
@@ -34,11 +35,15 @@ void UART_TxChar(char data) {	// Передача из МК в провод
 }
 
 void UART_TxString(char * data) {
-
-	int i = 0;
-	while (data[i] != 0) {
-		UART_TxChar(data[i]);
-		i++;
+	while (*data) {
+		UART_TxChar(*data);
+		data++;
 	}
-	i = 0;
+}
+
+void UART_TxStringFlash(const char *data) {
+	while (pgm_read_byte(data)) {
+		UART_TxChar(pgm_read_byte(data));
+		data++;
+	}
 }
