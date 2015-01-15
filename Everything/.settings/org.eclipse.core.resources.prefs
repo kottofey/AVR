@@ -4,7 +4,6 @@ encoding/DS18B20.h=UTF-8
 encoding/LCD.c=UTF-8
 encoding/LCD.h=UTF-8
 encoding/Messages.h=UTF-8
-encoding/Timers.c=UTF-8
 encoding/Timers.h=UTF-8
 encoding/keyboard.c=UTF-8
 encoding/main.c=UTF-8
