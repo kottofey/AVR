@@ -17,7 +17,7 @@ void UART_Init(unsigned int ubrr) {
 	UBRRL = (unsigned char) ubrr;
 
 	/* Enable receiver and transmitter */
-	UCSRB = 1 << RXEN | 1 << TXEN | 1 << RXCIE | 0 << TXCIE | 0 << UDRIE;
+	UCSRB = 1 << RXEN | 1 << TXEN | 0 << RXCIE | 0 << TXCIE | 0 << UDRIE;
 
 	/* Set frame format: 1 stop bit, 8data */
 	UCSRC = (1 << URSEL) | (0 << USBS) | (3 << UCSZ0);

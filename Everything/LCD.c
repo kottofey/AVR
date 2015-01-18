@@ -9,30 +9,103 @@
 #include "menu.h"
 #include <avr/pgmspace.h>
 
+/////////Настройки подключения LCD/////////
+#define LCD_4bitMode // Раскомментировать эту строку для 4-битного режима
+uint8_t LCD_DataMask = 0b01111000;	// Единичками отметить пины [7..4] шины данных LCD
+///////////////////////////////////////////
+
 uint8_t FSM_Staate; // Переменная состояния КА
 char AsciiTemp[10];
 
 void LCD_init() {
-	LCD_DATA_DDR = 0xff; // PORTC-шина данных на вывод
+#if defined (LCD_4bitMode)
+// 4-битный режим
+	LCD_DATA_DDR = (LCD_DATA_DDR & ~LCD_DataMask) | LCD_DataMask; // PORTC-шина данных на вывод (единички в ddr)
 	LCD_SIGNAL_DDR |= (1 << LCD_A0_PIN) | (1 << LCD_E_PIN) | (1 << LCD_RW_PIN); // пины 0, 1, 2 порта A на вывод
 
-	_delay_ms(20); 			// 	>20ms
+	_delay_ms(100); 			// 	>20ms
 //	init
-	LCD_WriteCmd(0x30);
-	LCD_WriteCmd(0x30);
-	LCD_WriteCmd(0x30);
+	LCD_SIGNAL_PORT &= ~(1 << LCD_A0_PIN);  // A0 = 0
+	LCD_SIGNAL_PORT &= ~(1 << LCD_RW_PIN);  // RW = 0
+	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);	// E = 0
+
+	LCD_DATA_PORT = 0x30;			 //Выдача байта на шину данных [1]
+	LCD_SIGNAL_PORT |= (1 << LCD_E_PIN);
+	_delay_us(1);
+	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);
+	_delay_ms(10);	// Строб
+
+	LCD_DATA_PORT = 0x30;			 //Выдача байта на шину данных [2]
+	LCD_SIGNAL_PORT |= (1 << LCD_E_PIN);
+	_delay_us(1);
+	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);
+	_delay_us(200);	// Строб
+
+	LCD_DATA_PORT = 0x30;			 //Выдача байта на шину данных [3]
+	LCD_SIGNAL_PORT |= (1 << LCD_E_PIN);
+	_delay_us(1);
+	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);
+	_delay_us(80);	// Строб
+
+	LCD_DATA_PORT = 0x20;			 //Выдача байта на шину данных [4]
+	LCD_SIGNAL_PORT |= (1 << LCD_E_PIN);
+	_delay_us(1);
+	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);
+	_delay_us(100);	// Строб
 
 //	setup
-	LCD_WriteCmd(0b00111010);	// Function Set (4[0]/8[1]bit, 1я страница)
-	LCD_WriteCmd(0b00001110);	// Disp On/Off Control (вкл[1]/выкл[0] экрана, режим курсора[10])
+	LCD_WriteCmd(0b00101010);	// Function Set (4bit, 1я страница)
+	LCD_WriteCmd(0b00001111);	// Disp On/Off Control (вкл[1]/выкл[0] экрана, режим курсора[11])
 	LCD_WriteCmd(0b00000110);	// Entry Mode Set (курсор влево/вправо | разрешение сдвига экрана)
 	LCD_WriteCmd(0b00000001);	// Clear Display
 
 //	debug
 	LCD_WriteCmd(0b00000010);	// Return Home (курсор в начало)
-	LCD_WriteStringFlash(PSTR("LCD Init OK"));	// инлайн строчка берется из флеша
-	_delay_ms(200);
-	LCD_WriteCmd(CLEAR_SCREEN);
+	LCD_WriteStringFlash(PSTR("LCD Init 4bit"));	// инлайн строчка берется из флеша
+	_delay_ms(500);
+	LCD_WriteCmd(LCD_CLEAR_SCREEN);
+
+#else
+// 8-битный режим
+	LCD_DATA_DDR = 0xff; // PORTC-шина данных на вывод (единички в ddr)
+	LCD_SIGNAL_DDR |= (1 << LCD_A0_PIN) | (1 << LCD_E_PIN) | (1 << LCD_RW_PIN); // пины 0, 1, 2 порта A на вывод
+	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);	// E = 0
+
+		_delay_ms(20); 			// 	>20ms
+	//	init
+		LCD_SIGNAL_PORT &= ~(1 << LCD_A0_PIN); //	A0 = 0
+		LCD_SIGNAL_PORT &= ~(1 << LCD_RW_PIN); // 	RW = 0
+
+		LCD_DATA_PORT = 0x30;			 //Выдача байта на шину данных [1]
+		LCD_SIGNAL_PORT |= (1 << LCD_E_PIN);
+		_delay_us(1);
+		LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);
+		_delay_us(45);	// Строб
+
+		LCD_DATA_PORT = 0x30;			 //Выдача байта на шину данных [2]
+		LCD_SIGNAL_PORT |= (1 << LCD_E_PIN);
+		_delay_us(1);
+		LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);
+		_delay_us(45);	// Строб
+
+		LCD_DATA_PORT = 0x30;			 //Выдача байта на шину данных [3]
+		LCD_SIGNAL_PORT |= (1 << LCD_E_PIN);
+		_delay_us(1);
+		LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);
+		_delay_us(45);	// Строб
+
+	//	setup
+		LCD_WriteCmd(0b00111010);	// Function Set (8bit, 1я страница)
+		LCD_WriteCmd(0b00001110);	// Disp On/Off Control (вкл[1]/выкл[0] экрана, режим курсора[10])
+		LCD_WriteCmd(0b00000110);	// Entry Mode Set (курсор влево/вправо | разрешение сдвига экрана)
+		LCD_WriteCmd(0b00000001);	// Clear Display
+
+	//	debug
+		LCD_WriteCmd(0b00000010);	// Return Home (курсор в начало)
+		LCD_WriteStringFlash(PSTR("LCD Init 8bit"));	// инлайн строчка берется из флеша
+		_delay_ms(200);
+		LCD_WriteCmd(LCD_CLEAR_SCREEN);
+#endif
 }
 
 void LCD_WriteCmd(char b) {
@@ -44,6 +117,60 @@ void LCD_WriteData(char b) {
 }
 
 void LCD_WriteByte(char b, char cd) {
+/////Вычисление пина №7 шины данных///////////
+	uint8_t shifted_mask = LCD_DataMask;
+	uint8_t LCD_Pin7 = 3;
+	while (shifted_mask != 0b00001111){
+		shifted_mask >>= 1;
+		LCD_Pin7++;
+	}
+//////////////////////////////////////////////
+#if defined(LCD_4bitMode)
+// 4-битный режим
+	LCD_DATA_DDR = (LCD_DATA_DDR | LCD_DataMask) ^ LCD_DataMask; // шина_данных на вход (ноли по маске не трогая остальные биты)
+	LCD_SIGNAL_DDR |= (1 << LCD_A0_PIN) | (1 << LCD_E_PIN) | (1 << LCD_RW_PIN); // пины A0, E, RW на вывод
+
+// Чтение флага занятости
+	LCD_SIGNAL_PORT &= ~(1 << LCD_A0_PIN); //	A0 = 0
+	LCD_SIGNAL_PORT |= (1 << LCD_RW_PIN); // 	RW = 1
+
+	_delay_us(1); 			// 	>40ns
+	LCD_SIGNAL_PORT |= (1 << LCD_E_PIN); 	//	E = 1
+	_delay_us(1);			//	>230ns
+	while ( ((LCD_DATA_PIN & LCD_DataMask) >> LCD_Pin7) );	//	Ждать сброса флага занятости на пине 7 LCD
+
+	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);	//	E = 0
+	LCD_DATA_DDR = (LCD_DATA_DDR | LCD_DataMask);	// шина данных опять на вывод (единички по маске не трогая остальные биты)
+	LCD_SIGNAL_PORT &= ~(1 << LCD_RW_PIN); //	RW = 0
+
+	if (cd == 1) {
+		LCD_SIGNAL_PORT |= (1 << LCD_A0_PIN);
+	}	// A0 = cd (1)
+	else {
+		LCD_SIGNAL_PORT &= ~(1 << LCD_A0_PIN);
+	}	// A0 = cd (0)
+
+	uint8_t port_backup = LCD_DATA_PORT;
+	uint8_t nibble = ( (b >> 4) << (LCD_Pin7 - 3)); // старший ниббл в нужной позиции
+	port_backup = (port_backup & ~LCD_DataMask) | nibble; // обнуляем шину данных инвертированной маской, а потом вставляем ниббл
+	LCD_DATA_PORT = port_backup;
+
+	LCD_SIGNAL_PORT |= (1 << LCD_E_PIN);
+	_delay_us(1);
+	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);
+	_delay_us(45);	// Строб
+
+	nibble = ( (b & 0x0F) << (LCD_Pin7 - 3)); // младший ниббл в нужной позиции
+	port_backup = (port_backup & ~LCD_DataMask) | nibble; // обнуляем шину данных инвертированной маской, а потом вставляем ниббл
+	LCD_DATA_PORT = port_backup;
+
+	LCD_SIGNAL_PORT |= (1 << LCD_E_PIN);
+	_delay_us(1);
+	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);
+	_delay_us(45);	// Строб
+
+#else
+// 8-битный режим
 	LCD_DATA_DDR = 0b00000000; // PORTC-шина_данных на вход
 	LCD_SIGNAL_DDR |= (1 << LCD_A0_PIN) | (1 << LCD_E_PIN) | (1 << LCD_RW_PIN); // пины 0, 1, 2 порта A на вывод
 
@@ -57,7 +184,7 @@ void LCD_WriteByte(char b, char cd) {
 	while (LCD_DATA_PIN >= 0x80);	//	Ждать сброса флага занятости на пине 7 LCD
 
 	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);	//	E = 0
-	DDRC = 0xFF;	// шина данных опять на вывод
+	LCD_DATA_DDR = 0xFF;	// шина данных опять на вывод
 	LCD_SIGNAL_PORT &= ~(1 << LCD_RW_PIN); //	RW = 0
 
 	if (cd == 1) {
@@ -72,6 +199,7 @@ void LCD_WriteByte(char b, char cd) {
 	_delay_us(1);
 	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);
 	_delay_us(45);	// Строб
+#endif
 }
 
 void LCD_WriteString(char *data) {
@@ -136,9 +264,9 @@ void LCD_ProcessFSM(){
 			}
 			if (GetMessage(MSG_KEYB_KEY_PRESSED)){
 				switch (Keyb_GetScancode()){
-					case KEY_1: LCD_WriteCmd(CLEAR_SCREEN); break;
-					case KEY_2: LCD_WriteCmd(CURSOR_MOVE_LEFT); break;
-					case KEY_3: LCD_WriteCmd(CURSOR_MOVE_RIGHT); break;
+					case KEY_1: LCD_WriteCmd(LCD_CLEAR_SCREEN); break;
+					case KEY_2: LCD_WriteCmd(LCD_CURSOR_MOVE_LEFT); break;
+					case KEY_3: LCD_WriteCmd(LCD_CURSOR_MOVE_RIGHT); break;
 					case KEY_4: FSM_Staate=10; SendBroadcastMessage(MSG_MENU_STARTED); break;	// Вход в меню
 					case KEY_1_2: LCD_WriteData('5'); break;
 					case KEY_1_3: LCD_WriteData('6'); break;
@@ -152,7 +280,7 @@ void LCD_ProcessFSM(){
 			break;
 
 		case 10:	// Входим в меню
-			LCD_WriteCmd(CLEAR_SCREEN);
+			LCD_WriteCmd(LCD_CLEAR_SCREEN);
 			LCD_WriteStringFlash(PSTR("MENU:"));
 			LCD_GotoXY(1,0);
 			SET_MENU(x1);
@@ -161,7 +289,7 @@ void LCD_ProcessFSM(){
 
 		case 11:
 			if (GetMessage(MSG_KEYB_KEY_PRESSED)){
-				LCD_WriteCmd(CLEAR_SCREEN);
+				LCD_WriteCmd(LCD_CLEAR_SCREEN);
 				LCD_WriteStringFlash(PSTR("MENU:"));
 				LCD_GotoXY(1,0);
 				switch (Keyb_GetScancode()){
@@ -174,8 +302,7 @@ void LCD_ProcessFSM(){
 			}
 			break;
 		default:
-			LCD_WriteCmd(CLEAR_SCREEN);
-			LCD_GotoXY(0,0);
+			LCD_WriteCmd(LCD_CLEAR_SCREEN);
 			LCD_WriteStringFlash(PSTR("There was error!"));
 			break;
 	}

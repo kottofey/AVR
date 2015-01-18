@@ -73,8 +73,10 @@ void ds_10bit();
 void ds_11bit();
 void ds_12bit();
 void menu_exit();
-void settings_to_uart();
-
+void cursor1();
+void cursor2();
+void cursor3();
+void cursor4();
 
 EXTERN_MENU(x1);
 EXTERN_MENU(x2);
