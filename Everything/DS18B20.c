@@ -234,11 +234,20 @@ void DS_ReadROM(){
 	}
 
 	SendBroadcastMessage(MSG_MENU_EXIT);
-	LCD_GotoXY(1,15);
-	LCD_WriteData(0x17); _delay_ms(500);
+//	LCD_GotoXY(1,15);
+//	LCD_WriteData(0x17); _delay_ms(500);
 	return;
 }
 
+void DS_Start(){
+	_FSM_State = 0;
+	return;
+}
+
+void DS_Stop(){
+	_FSM_State = 99;
+	return;
+}
 
 ///// Функция проверяет CRC переданный в аргументе. Возвращается ноль если CRC совпадает
 uint8_t DS_CheckCRC(char *crc_to_check){
@@ -288,6 +297,8 @@ void DS_ProcessFSM(){
 				StopTimer(TIMER_TEMP_CONVERT);
 				FSM_State = 0;
 			}
+			break;
+		case 99:	// Приостановка измерений
 			break;
 
 	}

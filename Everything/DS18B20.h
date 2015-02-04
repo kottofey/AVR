@@ -41,6 +41,8 @@ void DS_MeasureTemp();
 uint16_t DS_GetTemp();
 void DS_GetAsciiTemp();
 void DS_ReadROM();
+void DS_Start();
+void DS_Stop();
 uint8_t DS_CheckCRC(char *crc_to_check);
 
 void DS_InitFSM();
