@@ -14,8 +14,8 @@
 #define MYUBRR F_CPU/16/BAUD-1 // Вычисление бита UBRR
 
 void UART_Init(unsigned int ubrr);
-void UART_TxChar(char data);
-void UART_TxString(char *data);
-void UART_TxStringFlash(const char *data);
+void UART_TxChar(unsigned char data);
+void UART_TxString(unsigned char *data);
+void UART_TxStringFlash(const unsigned char *data);
 
 #endif

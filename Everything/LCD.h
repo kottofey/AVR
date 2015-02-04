@@ -2,7 +2,7 @@
  *	- LCD_Init				Инициализация дисплея
  *	- LCD_WriteCmd			Функция ввода комманды
  *	- LCD_Write_Data		Функция ввода символа в CGRAM или вывода на экран из DDRAM
- *	- LCD_WriteString		Функция ввода строки char
+ *	- LCD_WriteString		Функция ввода строки unsigned char
  *	- LCD_GotoXY			Функция перехода на "x" строку (0я строка или 1я строка)
  *							в позицию "y" символо-места (0-15)
  *	- LCD_MakeSymbol		Первым аргументом идет номер ячейки памяти для записи собственного
@@ -53,14 +53,14 @@
 
 /////// Прототипы функций//////////////////
 void LCD_init();
-void LCD_WriteCmd(char b);
-void LCD_WriteData(char b);
-void LCD_WriteByte(char b, char cd);
+void LCD_WriteCmd(unsigned char b);
+void LCD_WriteData(unsigned char b);
+void LCD_WriteByte(unsigned char b, unsigned char cd);
 void LCD_WriteString(char *data);
-void LCD_WriteStringFlash(const char *data);
+void LCD_WriteStringFlash(const unsigned char *data);
 uint8_t LCD_ReadCursor();
-void LCD_GotoXY(char stroka, char simvol);
-void LCD_MakeSymbol(char addr, char * a0); // Символ задается массивом. Программа компактнее, но отжирает больше памяти flash
+void LCD_GotoXY(unsigned char stroka, unsigned char simvol);
+void LCD_MakeSymbol(unsigned char addr, unsigned char * a0); // Символ задается массивом. Программа компактнее, но отжирает больше памяти flash
 void LCD_ShowTemp();
 
 void LCD_InitFSM();

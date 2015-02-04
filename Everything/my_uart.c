@@ -23,7 +23,7 @@ void UART_Init(unsigned int ubrr) {
 	UCSRC = (1 << URSEL) | (0 << USBS) | (3 << UCSZ0);
 }
 
-void UART_TxChar(char data) {	// Передача из МК в провод
+void UART_TxChar(unsigned char data) {	// Передача из МК в провод
 
 	/* Wait for empty transmit buffer */
 	while (!( UCSRA & (1 << UDRE)))
@@ -34,16 +34,23 @@ void UART_TxChar(char data) {	// Передача из МК в провод
 
 }
 
-void UART_TxString(char * data) {
+void UART_TxString(unsigned char * data) {
 	while (*data) {
 		UART_TxChar(*data);
 		data++;
 	}
 }
 
-void UART_TxStringFlash(const char *data) {
+void UART_TxStringFlash(const unsigned char *data) {
 	while (pgm_read_byte(data)) {
-		UART_TxChar(pgm_read_byte(data));
-		data++;
+		if (pgm_read_byte(data) >= 0xd0) {
+			data++;
+			UART_TxChar(pgm_read_byte(data) + 0x30);
+			data++;
+		}
+		else {
+			UART_TxChar(pgm_read_byte(data));
+			data++;
+		}
 	}
 }

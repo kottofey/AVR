@@ -75,7 +75,7 @@ void LCD_init() {
 
 //	debug
 	LCD_WriteCmd(0b00000010);	// Return Home (курсор в начало)
-	LCD_WriteStringFlash(PSTR("LCD Init 4bit"));	// инлайн строчка берется из флеша
+	LCD_WriteStringFlash(PSTR("4-битный режим"));	// инлайн строчка берется из флеша
 	_delay_ms(500);
 	LCD_WriteCmd(LCD_CLEAR_SCREEN);
 
@@ -116,21 +116,21 @@ void LCD_init() {
 
 	//	debug
 		LCD_WriteCmd(0b00000010);	// Return Home (курсор в начало)
-		LCD_WriteStringFlash(PSTR("LCD Init 8bit"));	// инлайн строчка берется из флеша
+		LCD_WriteStringFlash(PSTR("8-битный режим"));	// инлайн строчка берется из флеша
 		_delay_ms(200);
 		LCD_WriteCmd(LCD_CLEAR_SCREEN);
 #endif
 }
 
-void LCD_WriteCmd(char b) {
+void LCD_WriteCmd(unsigned char b) {
 	LCD_WriteByte(b, 0);
 }
 
-void LCD_WriteData(char b) {
+void LCD_WriteData(unsigned char b) {
 	LCD_WriteByte(b, 1);
 }
 
-void LCD_WriteByte(char b, char cd) {
+void LCD_WriteByte(unsigned char b, unsigned char cd) {
 #if defined(LCD_4bitMode)
 // 4-битный режим
 	LCD_DATA_DDR = (LCD_DATA_DDR | LCD_DataMask) ^ LCD_DataMask; // шина_данных на вход (ноли по маске не трогая остальные биты)
@@ -210,15 +210,43 @@ void LCD_WriteByte(char b, char cd) {
 
 void LCD_WriteString(char *data) {
 	while (*data) {
-		LCD_WriteData(*data);
-		data++;
+		if (*data >= 0xd0){	// Проврка на кириллицу в кодировке UTF-8
+			if (*data == 0xd1) {	// проверка промежутка "п-я". В UTF8 он оторван и начинается с 0xD180, что соответствует строчной букве "п"
+				data++;
+				LCD_WriteData(*data + 0x70);
+				data++;
+			}
+			else { // промежуток "А-Я" и "а-о"
+				data++;
+				LCD_WriteData(*data + 0x30);
+				data++;
+			}
+		}
+		else { // для латиницы
+			LCD_WriteData(*data);
+			data++;
+		}
 	}
 }
 
-void LCD_WriteStringFlash(const char *data) {
+void LCD_WriteStringFlash(const unsigned char *data) {
 	while (pgm_read_byte(data)) {
-		LCD_WriteData(pgm_read_byte(data));
-		data++;
+		if (pgm_read_byte(data) >= 0xd0) {	// Проврка на кириллицу в кодировке UTF-8
+			if (pgm_read_byte(data) == 0xd1){	// проверка промежутка "п-я". В UTF8 он оторван и начинается с 0xD180, что соответствует строчной букве "п"
+				data++;
+				LCD_WriteData(pgm_read_byte(data) + 0x70);
+				data++;
+			}
+			else {// промежуток "А-Я" и "а-о"
+				data++;
+				LCD_WriteData(pgm_read_byte(data) + 0x30);
+				data++;
+			}
+		}
+		else { // Для латиницы
+			LCD_WriteData(pgm_read_byte(data));
+			data++;
+		}
 	}
 }
 
@@ -245,9 +273,9 @@ uint8_t LCD_ReadCursor(){
 
 	byte = ( (hNibble << 4) | lNibble); // Укладываем нибблы в байт, сначала старший, затем младший
 
-	UART_TxChar((char)hNibble);
-	UART_TxChar((char)lNibble);
-	UART_TxChar((char)byte);
+	UART_TxChar((unsigned char)hNibble);
+	UART_TxChar((unsigned char)lNibble);
+	UART_TxChar((unsigned char)byte);
 
 #else
 // 8-битный режим
@@ -261,9 +289,9 @@ uint8_t LCD_ReadCursor(){
 	return byte;
 }
 
-void LCD_GotoXY(char stroka, char simvol) {
+void LCD_GotoXY(unsigned char stroka, unsigned char simvol) {
 
-	char result = 0;
+	unsigned char result = 0;
 
 	if (!stroka)
 		result = simvol + 0x80; // 0я строка
@@ -273,7 +301,7 @@ void LCD_GotoXY(char stroka, char simvol) {
 	LCD_WriteCmd(result);
 }
 
-void LCD_MakeSymbol(char addr, char * a0) {
+void LCD_MakeSymbol(unsigned char addr, unsigned char * a0) {
 	if (!addr)
 	LCD_WriteCmd(addr + 0x40);
 	LCD_WriteCmd(addr * 0x08 + 0x40);	// Выбираем адрес символа в CGRAM
@@ -285,7 +313,7 @@ void LCD_MakeSymbol(char addr, char * a0) {
 
 void LCD_ShowTemp(){
 	LCD_WriteCmd(0x01);
-	LCD_WriteStringFlash(PSTR("Temp=     "));
+	LCD_WriteStringFlash(PSTR("Темп=     "));
 	LCD_WriteData(0xB0);
 	LCD_WriteStringFlash(PSTR("C"));
 
@@ -301,6 +329,8 @@ void LCD_InitFSM(){
 void LCD_ProcessFSM(){
 	if (GetBroadcastMessage(MSG_MENU_EXIT)){
 		FSM_Staate = 0;
+			LCD_GotoXY(1,15);
+			LCD_WriteData(0x17); _delay_ms(200);
 	}
 
 	switch (FSM_Staate){
