@@ -25,21 +25,24 @@ WriteFuncPtr*    WriteFunc;
 
 // Menus: 			Name		Next		Previous		Parent			Sibling			Select_Func		Enter_Func		Text
 MAKE_MENU(			x1,			x2,			x5,				x1,				x1y1,			NULL_FUNC,		NULL_FUNC,		"DS Settings    >");
-	MAKE_MENU(		x1y1,		x1y2,		x1y2,			x1,				x1y1z1,			NULL_FUNC,		NULL_FUNC,		"Measure Period >");
+	MAKE_MENU(		x1y1,		x1y2,		x1y4,			x1,				x1y1z1,			NULL_FUNC,		NULL_FUNC,		"Measure Period >");
 		MAKE_MENU(	x1y1z1,		x1y1z2,		x1y1z2,			x1y1,			x1y1z1,			ds_1sec,		NULL_FUNC,		"> 1 sec");
-		MAKE_MENU(	x1y1z2,		x1y1z1,		x1y1z1,			x1y1,			x1y1z2,			ds_5sec,		NULL_FUNC,		"> 5 sec");
+		MAKE_MENU(	x1y1z2,		x1y1z1,		x1y1z1,			x1y1,			x1y1z2,			ds_5sec,		NULL_FUNC,		"> 10 sec");
 
-	MAKE_MENU(		x1y2,		x1y1,		x1y1,			x1,				x1y2z1,			NULL_FUNC,		NULL_FUNC,		"Convert bits   >");
+	MAKE_MENU(		x1y2,		x1y3,		x1y1,			x1,				x1y2z1,			NULL_FUNC,		NULL_FUNC,		"Convert bits   >");
 		MAKE_MENU(	x1y2z1,		x1y2z2,		x1y2z4,			x1y2,			x1y2z1,			ds_9bit,		NULL_FUNC,		"> 9 bit");
 		MAKE_MENU(	x1y2z2,		x1y2z3,		x1y2z1,			x1y2,			x1y2z2,			ds_10bit,		NULL_FUNC,		"> 10 bit");
 		MAKE_MENU(	x1y2z3,		x1y2z4,		x1y2z2,			x1y2,			x1y2z3,			ds_11bit,		NULL_FUNC,		"> 11 bit");
 		MAKE_MENU(	x1y2z4,		x1y2z1,		x1y2z3,			x1y2,			x1y2z4,			ds_12bit,		NULL_FUNC,		"> 12 bit");
+	MAKE_MENU(		x1y3,		x1y4,		x1y2,			x1,				x1y3,			DS_Start,		NULL_FUNC,		"Start          >");
+	MAKE_MENU(		x1y4,		x1y1,		x1y3,			x1,				x1y4,			DS_Stop,		NULL_FUNC,		"Stop           >");
 
 MAKE_MENU(			x2,			x3,			x1,				x2,				x2y1,			NULL_FUNC,		NULL_FUNC,		"LCD Settings   >");
-	MAKE_MENU(		x2y1,		x2y2,		x2y4,			x2,				x2y1,			cursor1,		NULL_FUNC,		"> No cursor");
+	MAKE_MENU(		x2y1,		x2y2,		x2y5,			x2,				x2y1,			cursor1,		NULL_FUNC,		"> No cursor");
 	MAKE_MENU(		x2y2,		x2y3,		x2y1,			x2,				x2y2,			cursor2,		NULL_FUNC,		"> Block, blink");
 	MAKE_MENU(		x2y3,		x2y4,		x2y2,			x2,				x2y3,			cursor3,		NULL_FUNC,		"> Line, no blink");
-	MAKE_MENU(		x2y4,		x2y1,		x2y3,			x2,				x2y4,			cursor4,		NULL_FUNC,		"> Line, blink");
+	MAKE_MENU(		x2y4,		x2y5,		x2y3,			x2,				x2y4,			cursor4,		NULL_FUNC,		"> Line, blink");
+	MAKE_MENU(		x2y5,		x2y1,		x2y4,			x2,				x2y5,			LCD_ReadCursor,	NULL_FUNC,		"> Cursor to UART");
 
 MAKE_MENU(			x3,			x4,			x2,				x3,				x3,				DS_SearchAllDevices,NULL_FUNC,	"DS SEARCHROM");
 MAKE_MENU(			x4,			x5,			x3,				x4,				x4,				DS_ReadROM,		NULL_FUNC,		"READ_ROM to UART");
@@ -143,7 +146,7 @@ void ds_1sec(){
 }
 
 void ds_5sec(){
-	ds_refresh_period = 5*sec;
+	ds_refresh_period = 10*sec;
 	SendBroadcastMessage(MSG_MENU_EXIT);
 //	LCD_GotoXY(1,15);
 //	LCD_WriteData(0x17); _delay_ms(200);
@@ -174,6 +177,7 @@ void cursor2(){
 //	LCD_WriteData(0x17); _delay_ms(200);
 	return;
 }
+
 void cursor3(){
 // Курсор в виде черты и не мигает
 	LCD_WriteCmd(LCD_CURSOR_LINE_NOBLINK);
@@ -182,6 +186,7 @@ void cursor3(){
 //	LCD_WriteData(0x17); _delay_ms(200);
 	return;
 }
+
 void cursor4(){
 	// Курсор в виде черты и мигает
 	LCD_WriteCmd(LCD_CURSOR_LINE_BLINK);

@@ -12,12 +12,26 @@
 /////////Настройки подключения LCD/////////
 #define LCD_4bitMode // Раскомментировать эту строку для 4-битного режима
 uint8_t LCD_DataMask = 0b01111000;	// Единичками отметить пины [7..4] шины данных LCD
+uint16_t LCD_BacklightTimeout = 5*sec;
 ///////////////////////////////////////////
 
+uint8_t LCD_Pin7;	// Седьмой пин шины данных. Вычисляется автоматически.
 uint8_t FSM_Staate; // Переменная состояния КА
 char AsciiTemp[10];
 
 void LCD_init() {
+/////Инициализация пина подсветки LCD/////////
+	LCD_BACKLIGHT_DDR |= (1 << LCD_BACKLIGHT_PIN);
+	LCD_BACKLIGHT_PORT &= ~(1 << LCD_BACKLIGHT_PIN); // Выключено при запуске по умолчанию
+
+/////Вычисление пина №7 шины данных///////////
+	uint8_t shifted_mask = LCD_DataMask;
+	LCD_Pin7 = 3;
+	while (shifted_mask != 0b00001111){
+		shifted_mask >>= 1;
+		LCD_Pin7++;
+	}
+//////////////////////////////////////////////
 #if defined (LCD_4bitMode)
 // 4-битный режим
 	LCD_DATA_DDR = (LCD_DATA_DDR & ~LCD_DataMask) | LCD_DataMask; // PORTC-шина данных на вывод (единички в ddr)
@@ -117,14 +131,6 @@ void LCD_WriteData(char b) {
 }
 
 void LCD_WriteByte(char b, char cd) {
-/////Вычисление пина №7 шины данных///////////
-	uint8_t shifted_mask = LCD_DataMask;
-	uint8_t LCD_Pin7 = 3;
-	while (shifted_mask != 0b00001111){
-		shifted_mask >>= 1;
-		LCD_Pin7++;
-	}
-//////////////////////////////////////////////
 #if defined(LCD_4bitMode)
 // 4-битный режим
 	LCD_DATA_DDR = (LCD_DATA_DDR | LCD_DataMask) ^ LCD_DataMask; // шина_данных на вход (ноли по маске не трогая остальные биты)
@@ -216,6 +222,45 @@ void LCD_WriteStringFlash(const char *data) {
 	}
 }
 
+uint8_t LCD_ReadCursor(){
+	uint8_t byte = 0, hNibble = 0, lNibble = 0;
+	LCD_SIGNAL_PORT |= (1 << LCD_A0_PIN); //	A0 = 1
+	LCD_SIGNAL_PORT |= (1 << LCD_RW_PIN); // 	RW = 1
+	LCD_DATA_DDR = (LCD_DATA_DDR | LCD_DataMask); // шина_данных на выход (единицы по маске не трогая остальные биты)
+	_delay_us(1); 	// Время предустановки адреса >40ns
+
+#if defined (LCD_4bitMode)
+// 4-битный режим
+	LCD_SIGNAL_PORT |= (1 << LCD_E_PIN);	// E = 1
+	_delay_us(1);
+	hNibble = ( (LCD_DATA_PIN & LCD_DataMask) >> (LCD_Pin7 - 3) );	// Записываем старший ниббл
+	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);	// E = 0
+	_delay_us(45);	// Строб
+
+	LCD_SIGNAL_PORT |= (1 << LCD_E_PIN);	// E = 1
+	_delay_us(1);
+	lNibble = ( (LCD_DATA_PIN & LCD_DataMask) >> (LCD_Pin7 - 3) );	// Записываем младший ниббл
+	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);	// E = 0
+	_delay_us(45);	// Строб
+
+	byte = ( (hNibble << 4) | lNibble); // Укладываем нибблы в байт, сначала старший, затем младший
+
+	UART_TxChar((char)hNibble);
+	UART_TxChar((char)lNibble);
+	UART_TxChar((char)byte);
+
+#else
+// 8-битный режим
+	LCD_SIGNAL_PORT |= (1 << LCD_E_PIN);	// E = 1
+	_delay_us(1);
+	byte = LCD_DATA_PIN;	// Записываем байт
+	LCD_SIGNAL_PORT &= ~(1 << LCD_E_PIN);	// E = 0
+	_delay_us(45);	// Строб
+#endif
+
+	return byte;
+}
+
 void LCD_GotoXY(char stroka, char simvol) {
 
 	char result = 0;
@@ -250,6 +295,7 @@ void LCD_ShowTemp(){
 
 void LCD_InitFSM(){
 	FSM_Staate = 0;
+	StartTimer(TIMER_LCD_BACKLIGHT_TIMEOUT);
 }
 
 void LCD_ProcessFSM(){
@@ -259,12 +305,23 @@ void LCD_ProcessFSM(){
 
 	switch (FSM_Staate){
 		case 0:
+			// Проверка таймаута подсветки. Выключаем таймер и подсветку, если таймаут.
+			if (GetTimer(TIMER_LCD_BACKLIGHT_TIMEOUT) >= LCD_BacklightTimeout){
+				LCD_BACKLIGHT_PORT &= ~(1 << LCD_BACKLIGHT_PIN);
+				StopTimer(TIMER_LCD_BACKLIGHT_TIMEOUT);
+			}
+
 			if (GetMessage(MSG_TEMP_CONVERT_COMPLETED)){
 				LCD_ShowTemp();
 			}
 			if (GetMessage(MSG_KEYB_KEY_PRESSED)){
+				// По нажатию клавиши заново стартует таймер подсветки и она включается на время LCD_BACKLIGHT_TIMEOUT (указано в настройках)
+				StartTimer(TIMER_LCD_BACKLIGHT_TIMEOUT);
+				ResetTimer(TIMER_LCD_BACKLIGHT_TIMEOUT);
+				LCD_BACKLIGHT_PORT |= (1 << LCD_BACKLIGHT_PIN);
+
 				switch (Keyb_GetScancode()){
-					case KEY_1: LCD_WriteCmd(LCD_CLEAR_SCREEN); break;
+					case KEY_1: LCD_ReadCursor(); break;
 					case KEY_2: LCD_WriteCmd(LCD_CURSOR_MOVE_LEFT); break;
 					case KEY_3: LCD_WriteCmd(LCD_CURSOR_MOVE_RIGHT); break;
 					case KEY_4: FSM_Staate=10; SendBroadcastMessage(MSG_MENU_STARTED); break;	// Вход в меню
@@ -280,6 +337,12 @@ void LCD_ProcessFSM(){
 			break;
 
 		case 10:	// Входим в меню
+			// Проверка таймаута подсветки. Выключаем ее, если таймаут.
+			if (GetTimer(TIMER_LCD_BACKLIGHT_TIMEOUT) >= LCD_BacklightTimeout){
+				LCD_BACKLIGHT_PORT &= ~(1 << LCD_BACKLIGHT_PIN);
+				StopTimer(TIMER_LCD_BACKLIGHT_TIMEOUT);
+			}
+
 			LCD_WriteCmd(LCD_CLEAR_SCREEN);
 			LCD_WriteStringFlash(PSTR("MENU:"));
 			LCD_GotoXY(1,0);
@@ -288,7 +351,18 @@ void LCD_ProcessFSM(){
 			break;
 
 		case 11:
+			// Проверка таймаута подсветки. Выключаем ее, если таймаут.
+			if (GetTimer(TIMER_LCD_BACKLIGHT_TIMEOUT) >= LCD_BacklightTimeout){
+				LCD_BACKLIGHT_PORT &= ~(1 << LCD_BACKLIGHT_PIN);
+				StopTimer(TIMER_LCD_BACKLIGHT_TIMEOUT);
+			}
+
 			if (GetMessage(MSG_KEYB_KEY_PRESSED)){
+// По нажатию клавиши заново стартует таймер подсветки и она включается на время LCD_BACKLIGHT_TIMEOUT (указано в настройках)
+				StartTimer(TIMER_LCD_BACKLIGHT_TIMEOUT);
+				ResetTimer(TIMER_LCD_BACKLIGHT_TIMEOUT);
+				LCD_BACKLIGHT_PORT |= (1 << LCD_BACKLIGHT_PIN);
+
 				LCD_WriteCmd(LCD_CLEAR_SCREEN);
 				LCD_WriteStringFlash(PSTR("MENU:"));
 				LCD_GotoXY(1,0);

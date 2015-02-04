@@ -30,6 +30,7 @@ extern uint8_t TimersState[MAX_TIMERS];	// Контейнер для состо�
 #define TIMER_TICK 4
 #define TIMER_KEYB 5
 #define TIMER_TEMP_CONVERT 6
+#define TIMER_LCD_BACKLIGHT_TIMEOUT 7
 
 // Состояния для таймеров
 #define TIMER_STOPPED 0

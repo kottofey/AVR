@@ -37,6 +37,9 @@
 #define LCD_RW_PIN PC1
 #define LCD_E_PIN PC2
 
+#define LCD_BACKLIGHT_PORT PORTD
+#define LCD_BACKLIGHT_DDR DDRD
+#define LCD_BACKLIGHT_PIN PD7
 
 ////// Управляющие комманды дисплея////////
 #define LCD_CLEAR_SCREEN		0x00000001
@@ -55,6 +58,7 @@ void LCD_WriteData(char b);
 void LCD_WriteByte(char b, char cd);
 void LCD_WriteString(char *data);
 void LCD_WriteStringFlash(const char *data);
+uint8_t LCD_ReadCursor();
 void LCD_GotoXY(char stroka, char simvol);
 void LCD_MakeSymbol(char addr, char * a0); // Символ задается массивом. Программа компактнее, но отжирает больше памяти flash
 void LCD_ShowTemp();
