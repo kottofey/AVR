@@ -14,11 +14,16 @@
 
 char AsciiTemp[10]; // Строка с температурой в ASCII формате
 char FSM_State, _FSM_State; // Состояние автомата
-uint16_t ds_refresh_period = 1*sec;	// Периодичность замеров температуры
-uint8_t ds_convert_period = 188; 	// 9bit = 24, 10bit = 47, 11bit = 94, 12bit = 188
+unsigned char ROM_ARRAY[MAX_DEVICES][8] = {}; // все ROM (убрать когда сделаю хранение адресов в EEPROM)
+unsigned char ROM[8] = {};	// текущий ROM
 uint8_t crc8;
 
-const char dscrc_table[] PROGMEM = {
+/////////// Настройки DS18B20 /////////////////////////////////////////////////////////////////////////////
+uint16_t ds_refresh_period = 1*sec;	// Периодичность замеров температуры
+uint8_t ds_convert_period = 188; 	// 9bit = 24, 10bit = 47, 11bit = 94, 12bit = 188
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+const unsigned char dscrc_table[] PROGMEM = {
 0, 94,188,226, 97, 63,221,131,194,156,126, 32,163,253, 31, 65,
 157,195, 33,127,252,162, 64, 30, 95, 1,227,189, 62, 96,130,220,
 35,125,159,193, 66, 28,254,160,225,191, 93, 3,128,222, 60, 98,
@@ -37,7 +42,6 @@ const char dscrc_table[] PROGMEM = {
 116, 42,200,150, 21, 75,169,247,182,232, 10, 84,215,137,107, 53};
 
 int DS_Reset() {
-//	asm("cli");
 	pin_write();
 	pin_low();
 	_delay_us(480);
@@ -47,21 +51,17 @@ int DS_Reset() {
 	char i = (DS_PIN & (1 << DS_PIN_NUMBER));	// проверяем ножку на сигнал присутствия датчика
 
 	   if (i == 0) {	// датчик обнаружен, ножка прижата к нулю
-//			UART_TxChar('Y');
 		    _delay_us(480);
-//		    asm("sei");
 		    return 1;
 	   }
 	   else {	// датчик не обнаружен, ножка осталась подтянута к питанию
-
-//			UART_TxChar('N');
-		   _delay_us(480);
-//		   asm("sei");
+		   LCD_WriteCmd(LCD_CLEAR_SCREEN);
+		   LCD_WriteStringFlash(PSTR("ошЫбка"));
 		   return 0;
 		}
 }
 
-void DS_WriteBit(unsigned int bit){
+void DS_WriteBit(unsigned char bit){
 	if (bit){
 		pin_write();
 		pin_low();
@@ -79,8 +79,7 @@ void DS_WriteBit(unsigned int bit){
 	}
 }
 
-void DS_WriteByte(unsigned int byte){
-//	asm("cli");
+void DS_WriteByte(unsigned char byte){
 	for (int i = 0; i < 8; i++){
 		if (byte & 0b00000001){
 			pin_write();
@@ -99,12 +98,10 @@ void DS_WriteByte(unsigned int byte){
 		}
 		byte >>= 1;
 	}
-//	asm("sei");
 }
 
-char DS_ReadBit(){
-//	asm("cli");
-	char bit;
+unsigned char DS_ReadBit(){
+	unsigned char bit;
 	pin_write();
 	pin_low();		// Прижимаем к нулю
 	_delay_us(3);	// на 3 мкс, начало таймслота
@@ -114,12 +111,11 @@ char DS_ReadBit(){
 	pin_read(); // пин PD6 на чтение
 	bit = (DS_PIN & (1 << DS_PIN_NUMBER)) >> DS_PIN_NUMBER;	// Читаем бит. Сдвиг вправо на n бит чтобы получить чистую ноль или единицу
 	_delay_us(60);	// Ждем до конца таймслота
-//	asm("sei");
 	return bit;
 }
 
-char DS_ReadByte(){
-	char data = 0;
+unsigned char DS_ReadByte(){
+	unsigned char data = 0;
 	for (uint8_t i = 0; i < 8; i++){
 		data |= DS_ReadBit() << i;
 	}
@@ -217,46 +213,66 @@ void DS_GetAsciiTemp(){
 }
 
 void DS_ReadROM(){
-	char ds_rom[8];
-	uint8_t crc_result = 0;
-
+	unsigned char crc_result = 0;
+	unsigned char i = 0;
+	uint8_t unique = 0;
 	do {
 		DS_Reset();
 		DS_WriteByte(READ_ROM);
-		for (int i = 7; i >= 0; i--){
-			ds_rom[i] = DS_ReadByte();
+		for (int i = 0; i < 8; i++){
+			ROM[i] = DS_ReadByte();
 		}
-		crc_result = DS_CheckCRC(ds_rom);
+		crc_result = DS_CheckCRC(ROM);
 	} while (crc_result);
 
-	for (int i=0; i < 8; i++){
-		UART_TxChar(ds_rom[i]);
+	for (uint8_t i=0; i < MAX_DEVICES; i++){	// Прогоняем проверку текущего адреса на совпадение по всему массиву ROM
+		for (uint8_t k=0; k < 8; k++){
+			if (ROM[k] == ROM_ARRAY[i][k]) {
+				unique++;
+			}
+			UART_TxChar(ROM[k]);
+			UART_TxChar(ROM_ARRAY[i][k]);
+			UART_TxChar(unique);
+			if (unique == 8) {UART_TxStringFlash(PSTR("ROM Exist!\r")); SendBroadcastMessage(MSG_MENU_EXIT); return;} // ROM уже существует. Выход из функции без занесения в память.
+		}
+		unique = 0;	// обнуление счетчика уникальности
+	}
+
+	while (ROM_ARRAY[i][0] == 0x28) {	// Ищем следующую свободную ячейку
+		i++;
+	}
+
+	for (uint8_t j = 0; j < 8; j++){	// И переписываем в нее найденный адрес
+		ROM_ARRAY[i][j] = ROM[j];
 	}
 
 	SendBroadcastMessage(MSG_MENU_EXIT);
-//	LCD_GotoXY(1,15);
-//	LCD_WriteData(0x17); _delay_ms(500);
 	return;
 }
 
-void DS_Start(){
-	_FSM_State = 0;
-	return;
-}
-
-void DS_Stop(){
-	_FSM_State = 99;
-	return;
-}
-
-///// Функция проверяет CRC переданный в аргументе. Возвращается ноль если CRC совпадает
-uint8_t DS_CheckCRC(char *crc_to_check){
+///// Функция проверяет CRC переданного в аргументе ROM (8 байт). Возвращается ноль если CRC совпадает
+unsigned char DS_CheckCRC(unsigned char *crc_to_check){
 	crc8 = 0;
-	for (int i = 7; i >= 0; i--){
-		crc8 = (char)pgm_read_byte( &(dscrc_table[ crc8 ^ crc_to_check[i] ]) );
+	for (int i = 0; i < 8; i++){
+		crc8 = (unsigned char)pgm_read_byte( &(dscrc_table[ crc8 ^ crc_to_check[i] ]) );
 	}
 	return crc8;
 }
+
+void ShowAllROM(){
+	for (uint8_t i = 0; i < MAX_DEVICES; i++){
+		for(int j = 7; j >= 0; j--){
+			UART_TxChar(ROM_ARRAY[i][j]);
+		}
+	}
+}
+
+void ShowROM(unsigned char *ROM){
+	for(int j = 7; j >= 0; j--){
+		UART_TxChar(ROM[j]);
+	}
+}
+
 
 //////////////////// Конечный Автомат //////////////////////
 
@@ -269,28 +285,23 @@ void DS_ProcessFSM(){
 			_FSM_State = FSM_State;	// Сохраняем состояние автомата во временную переменную
 			FSM_State = 0xFF;	// Вход в меню, работа КА приостанавливается
 		}
-		else if (GetBroadcastMessage(MSG_MENU_EXIT)){
+	else if (GetBroadcastMessage(MSG_MENU_EXIT)){
 			FSM_State = _FSM_State;	// Выход из меню. Возвращаемся к месту где остановились при входе в меню
 		}
 
 	switch (FSM_State){
 		case 0:
-//			UART_TxString("DS0\n");
 			FSM_State = 1;
 			StartTimer(TIMER_TEMP_CONVERT);
 			break;
-
 		case 1:
-//			UART_TxString("DS1\n");
 			if (GetTimer(TIMER_TEMP_CONVERT) >= ds_refresh_period ){
 				DS_MeasureTemp();
 				ResetTimer(TIMER_TEMP_CONVERT);
 				FSM_State = 2;
 			}
 			break;
-
 		case 2:
-//			UART_TxString("DS2\n");
 			if (GetTimer(TIMER_TEMP_CONVERT) >= ds_convert_period ){	// Через секунду гарантировано можно забирать значение при любой разрядности датчика
 				DS_GetAsciiTemp();
 				SendMessage(MSG_TEMP_CONVERT_COMPLETED);
@@ -299,6 +310,7 @@ void DS_ProcessFSM(){
 			}
 			break;
 		case 99:	// Приостановка измерений
+					// Вход в меню, например...
 			break;
 
 	}

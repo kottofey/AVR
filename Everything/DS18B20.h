@@ -22,28 +22,30 @@
 #define READ_ROM			0x33	// Чтение 64х-битного кода датчика (ТОЛЬКО КОГДА УСТРОЙСТВО НА ШИНЕ ОДНО!)
 #define SEARCH_ROM			0xF0	// Поиск всех 1-wire устройств на шине. Они будут отвечать 64-битным кодом (0x24+"s/n"+CRC)
 
-#define DS_PORT PORTD
-#define DS_PIN PIND
-#define DS_DDR DDRD
-#define DS_PIN_NUMBER 2
+#define DS_PORT PORTA
+#define DS_PIN PINA
+#define DS_DDR DDRA
+#define DS_PIN_NUMBER PA0
+
+#define MAX_DEVICES 6
 
 extern uint16_t ds_refresh_period;	// Периодичность замеров температуры
 extern uint8_t ds_convert_period;	// Длительность конвертации (зависит от битности значения температуры)
 extern char AsciiTemp[10];			// Глобальная переменная для температуры в ASCII формате
-extern const char dscrc_table[];
+extern const unsigned char dscrc_table[];
 
 int DS_Reset();
-void DS_WriteByte(unsigned int byte);
-void DS_WriteBit(unsigned int bit);
-char DS_ReadBit();
-char DS_ReadByte();
+void DS_WriteByte(unsigned char byte);
+void DS_WriteBit(unsigned char bit);
+unsigned char DS_ReadBit();
+unsigned char DS_ReadByte();
 void DS_MeasureTemp();
 uint16_t DS_GetTemp();
 void DS_GetAsciiTemp();
 void DS_ReadROM();
-void DS_Start();
-void DS_Stop();
-uint8_t DS_CheckCRC(char *crc_to_check);
+unsigned char DS_CheckCRC(unsigned char *crc_to_check);
+void ShowAllROM();
+void ShowROM(unsigned char *ROM);
 
 void DS_InitFSM();
 void DS_ProcessFSM();

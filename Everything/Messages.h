@@ -26,6 +26,7 @@
 
 #define MSG_MENU_STARTED 6
 #define MSG_MENU_EXIT 7
+#define MSG_MENU_VALUE_CHANGE_DONE 8
 
 void InitMessages();
 void SendMessage(uint8_t Msg);

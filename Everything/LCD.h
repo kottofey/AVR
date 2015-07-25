@@ -37,19 +37,26 @@
 #define LCD_RW_PIN PC1
 #define LCD_E_PIN PC2
 
-#define LCD_BACKLIGHT_PORT PORTD
-#define LCD_BACKLIGHT_DDR DDRD
-#define LCD_BACKLIGHT_PIN PD7
+#define LCD_BACKLIGHT_PORT PORTC
+#define LCD_BACKLIGHT_DDR DDRC
+#define LCD_BACKLIGHT_PIN PC7
+
+#define LCD_4bitMode 1 // 1 = 4х-битный режим; 0 = 8ми-битный режим
 
 ////// Управляющие комманды дисплея////////
-#define LCD_CLEAR_SCREEN		0x00000001
+#define LCD_CLEAR_SCREEN		0b00000001
+#define LCD_CURSOR_RETURN		0b00000010
 #define LCD_CURSOR_MOVE_LEFT	0b00010000
 #define LCD_CURSOR_MOVE_RIGHT	0b00010100
 #define LCD_CURSOR_NOCURSOR		0b00001100
 #define LCD_CURSOR_BLOCKCURSOR	0b00001101
 #define LCD_CURSOR_LINE_NOBLINK	0b00001110
 #define LCD_CURSOR_LINE_BLINK	0b00001111
+#define LCD_ON					0b00001111
+#define LCD_OFF					0b00001011
 
+extern uint16_t LCD_BacklightTimeout;
+extern uint8_t FSM_Staate;
 
 /////// Прототипы функций//////////////////
 void LCD_init();
@@ -62,8 +69,10 @@ uint8_t LCD_ReadCursor();
 void LCD_GotoXY(unsigned char stroka, unsigned char simvol);
 void LCD_MakeSymbol(unsigned char addr, unsigned char * a0); // Символ задается массивом. Программа компактнее, но отжирает больше памяти flash
 void LCD_ShowTemp();
-
 void LCD_InitFSM();
 void LCD_ProcessFSM();
+void key2_action();
+void key3_action();
+void apply_setting();
 
 #endif

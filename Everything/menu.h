@@ -13,6 +13,10 @@
 
 #include <avr/pgmspace.h>
 
+#define MAX_ITEMS 4
+
+enum {DS_BitsSetting, DS_PeriodSetting, LCD_BacklightSetting, LCD_CursorSetting}; // Перечисление всех установок
+
 // Typedefs:
 typedef void (*FuncPtr)(void);
 typedef void (*WriteFuncPtr)(const char*);
@@ -27,12 +31,25 @@ typedef const struct PROGMEM{
 	const char  Text[];
 } Menu_Item;
 
+typedef struct {
+	unsigned char text[5];
+	unsigned char item1[MAX_ITEMS];
+	unsigned char item1_text[MAX_ITEMS][4];
+	unsigned char item2[MAX_ITEMS];
+} settings;
+
 // Externs:
 extern WriteFuncPtr*    WriteFunc;
 extern Menu_Item        Null_Menu;
 extern Menu_Item*       CurrMenuItem;
 
+extern unsigned char current_setting;
+extern unsigned char current_setting_selected;
+extern const settings Setting[];
+
+
 // Defines and Macros:
+
 #define NULL_ENTRY Null_Menu
 #define NULL_FUNC  (void*)0
 #define NULL_TEXT  0x00
@@ -66,30 +83,19 @@ extern Menu_Item*       CurrMenuItem;
 // Prototypes:
 void MenuChange(Menu_Item* NewMenu);
 void MenuFunc(FuncPtr* Function);
-void ds_1sec();
-void ds_5sec();
-void ds_9bit();
-void ds_10bit();
-void ds_11bit();
-void ds_12bit();
+
+void Enter_DS_PeriodSetting();
+void Enter_DS_BitsSetting();
+void Enter_LCD_BacklightSetting();
+void Enter_LCD_CursorSetting();
+void settings_select();
+
+void setting_change();
 void menu_exit();
-void cursor1();
-void cursor2();
-void cursor3();
-void cursor4();
+
+void sleep();
+void set_to_UART();
 
 EXTERN_MENU(x1);
-EXTERN_MENU(x2);
-EXTERN_MENU(x3);
-
-EXTERN_MENU(x1y1);
-EXTERN_MENU(x1y2);
-EXTERN_MENU(x1y3);
-
-EXTERN_MENU(x2y1);
-EXTERN_MENU(x2y2);
-
-EXTERN_MENU(x1y1z1);
-EXTERN_MENU(x1y1z2);
 
 #endif
